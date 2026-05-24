@@ -14,6 +14,10 @@ struct TripHubApp: App {
         WindowGroup {
             MainTabView()
         }
-        .modelContainer(for: TripStore.self)
+        .modelContainer(for: [
+            TripModel.self,
+            DestinationModel.self,
+            DocumentModel.self,
+        ])
     }
 }

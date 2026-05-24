@@ -6,7 +6,13 @@
 	<array>
 		<string></string>
 	</array>
+
+	<!-- ✅ Membolehkan folder app terlihat di aplikasi Files iOS -->
 	<key>UIFileSharingEnabled</key>
+	<true/>
+
+	<!-- ✅ Membolehkan file dibuka langsung dari Files app (tanpa dicopy dulu) -->
+	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 </dict>
 </plist>

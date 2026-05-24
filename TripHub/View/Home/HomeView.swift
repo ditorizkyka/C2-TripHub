@@ -5,7 +5,7 @@ import PhotosUI
 
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
-    @Query(sort: \TripStore.createdAt, order: .reverse) var documents: [TripStore]
+//    @Query(sort: \TripModel.createdAt, order: .reverse) var documents: [TripModel]
     @State private var showOptions = false
     @State private var selectedPhoto: PhotosPickerItem?
     
@@ -105,7 +105,7 @@ struct HomeView: View {
                                 ForEach(DocumentCategory.allCases, id: \.rawValue) { category in
                                     HStack {
                                         VStack(alignment:.leading, spacing: 10) {
-                                            Image(systemName: category.rawValue)
+                                            Image(systemName: category.icon)
                                                 .font(.title2)
                                                 .fontWeight(.light)
                                                 
