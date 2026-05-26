@@ -6,11 +6,44 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ExploreTripView: View {
     @State private var search: String = ""
-    let categories = ["Semua", "Pantai", "Gunung", "Budaya", "Kuliner", "Hutan", "Kota"]
-    @State private var selectedCategory = "Semua"
+    let categories = ["All","Starred", "Upcoming", "Ongoing", "Past"]
+    @State private var selectedCategory = "All"
+    
+    @Query var allTrips: [TripModel]
+    
+    var filteredTrips: [TripModel] {
+        let today = Date()
+        
+        // Langkah 1: Filter berdasarkan kategori Chip
+        let categoryFiltered: [TripModel]
+        
+        switch selectedCategory {
+        case "Starred":
+            categoryFiltered = allTrips.filter { $0.isPinned } // Asumsi Anda menggunakan isPinned untuk Starred
+        case "Upcoming":
+            categoryFiltered = allTrips.filter { $0.isUpcoming(at: today) }
+        case "Ongoing":
+            categoryFiltered = allTrips.filter { $0.isOngoing(at: today) }
+        case "Past":
+            categoryFiltered = allTrips.filter { $0.isPast(at: today) }
+        default: // Kasus untuk "All"
+            categoryFiltered = allTrips
+        }
+        
+        // Langkah 2: Filter berdasarkan teks pencarian (Search Bar)
+        if search.isEmpty {
+            return categoryFiltered
+        } else {
+            return categoryFiltered.filter { trip in
+                // Mengecek apakah nama trip mengandung teks yang diketik (mengabaikan huruf besar/kecil)
+                trip.name.localizedCaseInsensitiveContains(search)
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -19,7 +52,7 @@ struct ExploreTripView: View {
                     // 4. HStack untuk menjejerkan chip ke samping
                                 HStack(spacing: 12) {
                                     ForEach(categories, id: \.self) { category in
-                                        // Memanggil desain chip di bawah
+//                                         Memanggil desain chip di bawah
                                         ChipItemView(
                                             title: category,
                                             isSelected: selectedCategory == category
@@ -35,12 +68,45 @@ struct ExploreTripView: View {
                                 .padding(.horizontal, 16) // Jarak awal dan akhir konten dengan layar
                                 .padding(.vertical, 8)
                 }
-                ForEach(0..<3,) { index in
-                            // Memanggil View Card yang sudah dibuat sebelumnya
-                            GlassmorphismCardView()
-                        .padding(.vertical,8)
-                        }
                 
+                ForEach(filteredTrips) { trip in
+                    // 'trip' di sini sudah berupa TripModel utuh
+                    
+                    GlassmorphismCardView(trip: trip)
+                        .padding(.vertical, 8)
+                }
+                
+//                // 👇 Tambahkan ini agar ketahuan kalau datanya memang kosong
+//                if filteredTrips.isEmpty {
+//                    VStack(spacing: 12) {
+//                        
+//                        Image(systemName: "tray")
+//                            .font(.system(size: 40))
+//                            .foregroundColor(.gray)
+//                        Text("No trips found")
+//                            .font(.helveticaCustom(size: 16))
+//                            .foregroundColor(.gray)
+//                    }
+//
+//                    .padding(.top, 50)
+//                }
+                
+            }
+            // 👇 Tambahkan overlay di sini (menempel pada ScrollView)
+            .overlay {
+                if filteredTrips.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        
+                        Text("No trips found")
+                            .font(.helveticaCustom(size: 16))
+                            .foregroundColor(.gray)
+                    }
+                    // Frame ini memastikan dia mengambil seluruh ruang layar dan berada di tengah
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
             }
             .navigationTitle("Your Trip")
             .searchable(text: $search, placement: .navigationBarDrawer)
@@ -62,6 +128,8 @@ struct ExploreTripView: View {
         }
     }
 }
+
+
 
 struct ChipItemView : View {
     var title : String

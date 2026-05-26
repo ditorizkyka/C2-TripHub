@@ -9,8 +9,8 @@
 import SwiftUI
 
 struct GlassmorphismCardView: View {
-    
-    
+//    private var trip : TripModel
+    let trip : TripModel
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -29,7 +29,7 @@ struct GlassmorphismCardView: View {
                     Button(action: {
                         print("Favorite ditekan")
                     }) {
-                        Image(systemName: "heart.fill")
+                        Image(systemName: "star.fill")
                             .font(.system(size: 20, weight: .medium))
                             .foregroundColor(Color(hex: "#4AB855"))
                             .frame(width: 44, height: 44)
@@ -49,16 +49,14 @@ struct GlassmorphismCardView: View {
             HStack(alignment: .bottom) {
                 // Sisi Kiri (Teks)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Epic Trip • Bali, Indonesia")
-                        .font(.subheadline)
-                        .foregroundColor(.black.opacity(0.6))
                     
-                    Text("Best Place Bali")
+                    
+                    Text(trip.name)
                         .font(.title3)
                         .fontWeight(.bold)
                         .foregroundColor(.black)
                     
-                    Text("Adventure from Ubud to Nusa Peni...")
+                    Text("\(trip.startDate) - \(trip.endDate)")
                         .font(.footnote)
                         .foregroundColor(.black.opacity(0.6))
                         .lineLimit(1)
@@ -67,21 +65,22 @@ struct GlassmorphismCardView: View {
                 Spacer()
                 
                 // Sisi Kanan (Rating & Harga)
-                VStack(alignment: .trailing, spacing: 14) {
+                VStack(alignment: .trailing, spacing: 3) {
                     HStack(spacing: 4) {
-                        Image(systemName: "star.fill",)
+                        Image(systemName: "document.on.document.fill",)
                             .foregroundStyle(Color(hex: "#4AB855"))
-                        Text("4.8 (12k)")
+                        Text("\(trip.totalDocumentCount) documents")
                     }
                     .font(.subheadline)
                     .fontWeight(.medium)
                     .foregroundColor(.black)
                     
                     // Format Harga
-                    Text("$700 ")
+                    Text("\(trip.destinations.count)")
+                        .font(.footnote)
                         .fontWeight(.bold)
                         .foregroundColor(.black)
-                    + Text("per day")
+                    + Text(" Destination")
                         .font(.footnote)
                         .foregroundColor(.black.opacity(0.6))
                 }
@@ -109,6 +108,6 @@ struct GlassmorphismCardView: View {
     ZStack {
         // Latar belakang keseluruhan agar card lebih menonjol
         Color.gray.opacity(0.2).ignoresSafeArea()
-        GlassmorphismCardView()
+//        GlassmorphismCardView()
     }
 }

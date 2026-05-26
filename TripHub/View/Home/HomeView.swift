@@ -37,17 +37,17 @@ struct HomeView: View {
                                 // Bagian Atas: Info Tracking & Status
                                 HStack(alignment: .top) {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        Text("Tracking number")
+                                        Text("Your Trip Destination")
                                             .font(.system(size: 14))
                                             .foregroundColor(.black.opacity(0.7))
-                                        Text("#36123217")
+                                        Text("Bandung Indonesia")
                                             .font(.system(size: 18, weight: .bold))
                                     }
                                     
                                     Spacer()
                                     
                                     // Status Badge (In transit)
-                                    Text("In transit")
+                                    Text("On Going")
                                         .font(.system(size: 12, weight: .medium))
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 12)
@@ -73,15 +73,15 @@ struct HomeView: View {
                                 // Bagian Bawah: Route & Date
                                 HStack {
                                     VStack(alignment: .leading) {
-                                        Text("From").font(.caption).foregroundColor(.black.opacity(0.6))
-                                        Text("Paris").font(.system(size: 16, weight: .semibold))
+                                        Text("Total Documents").font(.caption).foregroundColor(.black.opacity(0.6))
+                                        Text("18 Doc").font(.system(size: 16, weight: .semibold))
                                     }
                                     
                                     Spacer()
                                     
                                     VStack(alignment: .leading) {
-                                        Text("To").font(.caption).foregroundColor(.black.opacity(0.6))
-                                        Text("Berlin").font(.system(size: 16, weight: .semibold))
+                                        Text("Destination").font(.caption).foregroundColor(.black.opacity(0.6))
+                                        Text("18 Dest").font(.system(size: 16, weight: .semibold))
                                     }
                                     
                                     Spacer()
@@ -104,16 +104,19 @@ struct HomeView: View {
                             HStack(alignment: .center, spacing: 5) {
                                 ForEach(DocumentCategory.allCases, id: \.rawValue) { category in
                                     HStack {
-                                        VStack(alignment:.leading, spacing: 10) {
-                                            Image(systemName: category.icon)
-                                                .font(.title2)
-                                                .fontWeight(.light)
-                                                
-                                            Text(category.title)
-                                                .font(.helveticaCustom(size: 18))
+                                        NavigationLink(destination: category.page) {
+                                            VStack(alignment: .leading, spacing: 10) {
+                                                Image(systemName: category.icon)
+                                                    .font(.title2)
+                                                    .fontWeight(.light)
+                                                    
+                                                Text(category.title)
+                                                    .font(.helveticaCustom(size: 18))
+                                            }
+                                            .padding(.vertical, 13)
+                                            .padding(.horizontal, 20)
+                                            .foregroundColor(.primary) // Mencegah teks berubah jadi biru bawaan link
                                         }
-                                        .padding(.vertical,13)
-                                        .padding(.horizontal,20)
                                         
                                         Spacer()
                                     }
@@ -125,7 +128,7 @@ struct HomeView: View {
                         }
                         
                         VStack(alignment : .leading, spacing: 20) {
-                            Text("Starred Documents")
+                            Text("Recent Documents")
                                 .font(.helveticaCustom(size: 23))
                                 
                             LazyVStack(spacing: 12) {

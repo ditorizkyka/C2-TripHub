@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import SwiftData
 
 // ============================================================
@@ -30,11 +31,15 @@ final class DocumentModel {
     // Dengan ini, kita tahu di mana mencari file di dalam folder trip/destinasi
     var fileName: String
 
+    // Apakah dokumen ini di-pin/starred oleh user?
+    // Default false — wajib ada agar SwiftData tidak crash saat migrasi schema
+    @Attribute var isPinned: Bool = false
+
     // --- Relasi ke Parent ---
-    // Dokumen ini milik Trip mana? (Opsional, karena bisa juga milik Destinasi)
+    // Dokumen ini milik Trip mana? (untuk generalDocuments)
     var trip: TripModel?
 
-    // Dokumen ini milik Destinasi mana? (Opsional)
+    // Dokumen ini milik Destinasi mana? (untuk dokumen khusus destinasi)
     var destination: DestinationModel?
 
     // --- Inisialisasi ---
@@ -43,15 +48,17 @@ final class DocumentModel {
         name: String,
         uploadDate: Date = Date(),
         size: Double,
-        category: DocumentCategory,  // Kita terima enum-nya langsung
-        fileName: String
+        category: DocumentCategory,
+        fileName: String,
+        isPinned: Bool = false
     ) {
         self.id = id
         self.name = name
         self.uploadDate = uploadDate
         self.size = size
-        self.categoryRawValue = category.rawValue  // Lalu simpan rawValue-nya
+        self.categoryRawValue = category.rawValue
         self.fileName = fileName
+        self.isPinned = isPinned
     }
 
     // --- Computed Properties ---
@@ -59,18 +66,28 @@ final class DocumentModel {
     // Cek apakah file ini adalah gambar berdasarkan ekstensinya
     var isImage: Bool {
         let lowercased = fileName.lowercased()
-        return lowercased.hasSuffix(".jpg")
-            || lowercased.hasSuffix(".jpeg")
-            || lowercased.hasSuffix(".png")
-            || lowercased.hasSuffix(".heic")
+        if lowercased.hasSuffix(".jpg") { return true }
+        if lowercased.hasSuffix(".jpeg") { return true }
+        if lowercased.hasSuffix(".png") { return true }
+        if lowercased.hasSuffix(".heic") { return true }
+        return false
     }
 
+    // ============================================================
+    // PENTING: Jangan pakai @Transient computed property dengan setter
+    // di SwiftData @Model class. Ini bisa menyebabkan CRASH.
+    //
+    // Gunakan fungsi biasa (getCategory / setCategory) sebagai gantinya.
+    // ============================================================
+
     // Ambil enum category dari rawValue yang tersimpan
-    // @Transient artinya properti ini TIDAK ikut disimpan di database
-    @Transient
-    var category: DocumentCategory {
-        get { DocumentCategory(rawValue: categoryRawValue) ?? .others }
-        set { categoryRawValue = newValue.rawValue }
+    func getCategory() -> DocumentCategory {
+        return DocumentCategory(rawValue: categoryRawValue) ?? .others
+    }
+
+    // Set category baru
+    func setCategory(_ newCategory: DocumentCategory) {
+        categoryRawValue = newCategory.rawValue
     }
 }
 
@@ -98,4 +115,16 @@ enum DocumentCategory: String, CaseIterable, Codable {
         case .others:   return "doc.text.fill"
         }
     }
+    
+    @ViewBuilder
+        var page: some View {
+            switch self {
+            case .ticket:
+                TicketDocuments()
+            case .identity:
+                IdentityDocuments()
+            case .others:
+                OtherDocuments()
+            }
+        }
 }

@@ -5,17 +5,17 @@ import SwiftData
 // ============================================================
 // MARK: - PendingDocument
 // ============================================================
-// Ini adalah model SEMENTARA untuk dokumen yang belum disimpan.
-// Dokumen "pending" ini hanya ada di memori selama user mengisi form.
-// Setelah user tekan "Simpan", baru kita ubah ini jadi DocumentModel yang tersimpan permanen.
+// Model SEMENTARA untuk file yang belum disimpan.
+// Hanya hidup di memori selama user mengisi form.
+// Setelah user tekan "Simpan", kita ubah ini jadi DocumentModel.
 
 struct PendingDocument: Identifiable {
     let id = UUID()
     var isImage: Bool          // true = gambar, false = PDF
-    var image: UIImage?        // Isi gambar jika isImage == true
-    var pdfURL: URL?           // URL file PDF jika isImage == false
+    var imageData: Data?       // Data gambar (sudah di-convert ke JPEG bytes)
+    var pdfData: Data?         // Data PDF (sudah di-copy ke memori)
     var name: String           // Nama tampilan yang bisa diubah user
-    var category: DocumentCategory = .others  // Kategori yang dipilih user
+    var category: DocumentCategory = .others
 }
 
 
@@ -23,49 +23,53 @@ struct PendingDocument: Identifiable {
 // MARK: - QuickStoreViewModel
 // ============================================================
 // ViewModel ini mengelola semua state dan logika untuk form "Quick Store".
-// Tugasnya adalah:
+//
+// Tugasnya:
 // 1. Menyimpan state form (nama trip, tanggal, destinasi, dokumen pending)
-// 2. Memproses dokumen yang dipilih (ambil dari Photos/PDF picker)
-// 3. Menyimpan semuanya ke disk (file fisik) dan SwiftData (metadata) saat user klik "Simpan"
+// 2. Memproses file yang dipilih (dari Photos/PDF picker)
+// 3. Menyimpan semuanya ke disk + SwiftData saat user klik "Simpan"
 
 @MainActor
 @Observable
 class QuickStoreViewModel {
 
     // --- State: Informasi Trip ---
-    var searchText: String = ""          // Teks yang diketik di field pencarian trip
-    var selectedTrip: TripModel? = nil   // Trip yang sudah dipilih (dari daftar yang ada)
+    var searchText: String = ""
+    var selectedTrip: TripModel? = nil
     var startDate = Date()
-    var isRangeEnabled = false           // Apakah trip punya durasi (lebih dari 1 hari)?
-    var durationDays = 1                 // Berapa hari tripnya?
+    var isRangeEnabled = false
+    var durationDays = 1
 
-    // Tanggal akhir dihitung otomatis dari startDate + durationDays
+    // Tanggal akhir dihitung otomatis
     var endDate: Date {
-        Calendar.current.date(byAdding: .day, value: durationDays, to: startDate) ?? startDate
+        return Calendar.current.date(byAdding: .day, value: durationDays, to: startDate) ?? startDate
     }
 
     // --- State: Destinasi ---
     var destinationName: String = ""
     var destinationStartDate = Date()
     var destinationEndDate = Date()
-    var destinations: [DestinationModel] = []       // Destinasi BARU yang ditambah di form ini
-    var selectedDestinationId: UUID? = nil          // Destinasi yang dipilih sebagai target upload
+    var newDestinations: [DestinationModel] = []
+    var selectedDestinationId: UUID? = nil
 
     // --- State: Dokumen yang Belum Disimpan ---
     var pendingDocuments: [PendingDocument] = []
 
-    // PhotosPicker membutuhkan binding ke array ini
+    // PhotosPicker butuh binding ke array ini
     var selectedItems: [PhotosPickerItem] = [] {
         didSet {
-            guard !selectedItems.isEmpty else { return }
+            // Jangan proses jika kosong
+            if selectedItems.isEmpty { return }
+
+            // Simpan dulu item yang mau diproses
             let itemsToProcess = selectedItems
 
-            // Reset array segera agar picker bisa dipilih lagi
+            // Kosongkan segera agar picker bisa dipilih lagi
             DispatchQueue.main.async {
                 self.selectedItems = []
             }
 
-            // Proses gambar yang dipilih
+            // Mulai proses gambar
             loadImages(itemsToProcess)
         }
     }
@@ -73,79 +77,141 @@ class QuickStoreViewModel {
     // --- State: UI ---
     var isSaving = false
     var showSaveSuccess = false
-    var errorMessage: String? = nil   // Tampilkan error jika ada yang gagal
 
     // Jumlah total file yang siap disimpan
     var totalFileCount: Int {
-        pendingDocuments.count
+        return pendingDocuments.count
     }
 
-    // Tombol "Simpan" hanya aktif jika ada nama trip dan minimal 1 dokumen
+    // Tombol "Simpan" hanya aktif jika ada nama trip DAN minimal 1 dokumen
     var canSave: Bool {
-        let tripName = selectedTrip?.name ?? searchText.trimmingCharacters(in: .whitespaces)
-        return !tripName.isEmpty && !pendingDocuments.isEmpty
+        let hasTrip = selectedTrip != nil || !searchText.trimmingCharacters(in: .whitespaces).isEmpty
+        let hasDocs = !pendingDocuments.isEmpty
+        return hasTrip && hasDocs
     }
 
-
     // ============================================================
-    // MARK: - Simpan Trip (Fungsi Utama)
+    // MARK: - SIMPAN TRIP (Fungsi Utama)
     // ============================================================
-    // Fungsi ini dipanggil saat user menekan tombol "Simpan".
-    // Ia perlu `modelContext` dari SwiftData untuk menyimpan data ke database.
+    // Dipanggil saat user menekan tombol "Simpan".
+    //
+    // PENTING untuk SwiftData:
+    // - Jangan set KEDUA sisi relasi sekaligus!
+    //   Contoh salah: doc.trip = trip DAN trip.generalDocuments.append(doc)
+    //   Contoh benar: doc.trip = trip (SwiftData otomatis update sisi lainnya)
 
     func saveTrip(modelContext: ModelContext) {
         isSaving = true
-        errorMessage = nil
 
-        // Tentukan nama trip (dari yang sudah dipilih, atau dari teks yang diketik)
-        let tripName = selectedTrip?.name ?? searchText.trimmingCharacters(in: .whitespaces)
-        guard !tripName.isEmpty else {
-            errorMessage = "Nama trip tidak boleh kosong."
+        // --- Tentukan nama trip ---
+        let tripName: String
+        if let existing = selectedTrip {
+            tripName = existing.name
+        } else {
+            tripName = searchText.trimmingCharacters(in: .whitespaces)
+        }
+
+        // Validasi: nama trip tidak boleh kosong
+        if tripName.isEmpty {
+            print("⚠️ Nama trip kosong, batal simpan.")
             isSaving = false
             return
         }
 
-        // Tentukan tanggal akhir berdasarkan apakah user aktifkan toggle durasi
-        let actualEndDate: Date = isRangeEnabled ? endDate : startDate
+        // --- Tentukan tanggal akhir ---
+        let finalEndDate: Date
+        if isRangeEnabled {
+            finalEndDate = endDate
+        } else {
+            finalEndDate = startDate
+        }
 
-        // ----------------------------------------
-        // LANGKAH 1: Simpan file fisik ke disk
-        //            dan buat objek DocumentModel untuk setiap file
-        // ----------------------------------------
-        var newDocuments: [DocumentModel] = []
+        // ============================================
+        // LANGKAH 1: Tentukan trip target
+        // ============================================
+        let tripTarget: TripModel
 
+        if let existing = selectedTrip {
+            // User memilih trip yang sudah ada
+            tripTarget = existing
+        } else {
+            // Buat trip baru
+            let newTrip = TripModel(name: tripName, startDate: startDate, endDate: finalEndDate)
+            modelContext.insert(newTrip)
+            tripTarget = newTrip
+        }
+
+        // ============================================
+        // LANGKAH 2: Tambah destinasi baru (jika ada)
+        // ============================================
+        for dest in newDestinations {
+            modelContext.insert(dest)
+            // Cukup set SATU sisi relasi saja!
+            // SwiftData otomatis menambahkan dest ke trip.destinations
+            dest.trip = tripTarget
+        }
+
+        // ============================================
+        // LANGKAH 3: Tentukan target destinasi (jika dipilih)
+        // ============================================
+        var targetDestination: DestinationModel? = nil
+        var targetDestinationName: String? = nil
+
+        if let destId = selectedDestinationId {
+            // Cek di destinasi yang sudah ada di trip
+            if let found = tripTarget.destinations.first(where: { $0.id == destId }) {
+                targetDestination = found
+                targetDestinationName = found.name
+            }
+            // Cek di destinasi baru yang baru ditambah di form ini
+            if targetDestination == nil {
+                if let found = newDestinations.first(where: { $0.id == destId }) {
+                    targetDestination = found
+                    targetDestinationName = found.name
+                }
+            }
+        }
+
+        // ============================================
+        // LANGKAH 4: Simpan setiap dokumen
+        // ============================================
         for (index, pendingDoc) in pendingDocuments.enumerated() {
 
-            // Tentukan ekstensi file
-            let fileExtension = pendingDoc.isImage ? "jpg" : "pdf"
-
-            // Buat nama file unik menggunakan UUID agar tidak pernah bentrok
-            let uniqueFileName = "\(UUID().uuidString).\(fileExtension)"
-
-            // Tentukan nama tampilan (jika user tidak mengisi, buat nama otomatis)
-            let displayName = pendingDoc.name.trimmingCharacters(in: .whitespaces).isEmpty
-                ? "\(tripName)_doc_\(index + 1)"
-                : pendingDoc.name
-
-            // Ambil data (bytes) dari file
-            var fileData: Data? = nil
-            if pendingDoc.isImage, let image = pendingDoc.image {
-                fileData = image.jpegData(compressionQuality: 0.8)
-            } else if let pdfURL = pendingDoc.pdfURL {
-                fileData = try? Data(contentsOf: pdfURL)
+            // --- Tentukan ekstensi file ---
+            let fileExtension: String
+            if pendingDoc.isImage {
+                fileExtension = "jpg"
+            } else {
+                fileExtension = "pdf"
             }
 
-            // Jika berhasil mendapat data, simpan ke disk
+            // --- Buat nama file unik ---
+            let uniqueFileName = "\(UUID().uuidString).\(fileExtension)"
+
+            // --- Tentukan nama tampilan ---
+            let displayName: String
+            let trimmedName = pendingDoc.name.trimmingCharacters(in: .whitespaces)
+            if trimmedName.isEmpty {
+                displayName = "\(tripName)_doc_\(index + 1)"
+            } else {
+                displayName = trimmedName
+            }
+
+            // --- Ambil data file ---
+            let fileData: Data?
+            if pendingDoc.isImage {
+                fileData = pendingDoc.imageData
+            } else {
+                fileData = pendingDoc.pdfData
+            }
+
+            // Lewati jika data kosong
             guard let data = fileData else {
-                print("⚠️ Melewati dokumen '\(displayName)': data tidak bisa dibaca.")
+                print("⚠️ Lewati '\(displayName)': data kosong")
                 continue
             }
 
-            // Tentukan destinasi penyimpanan file
-            // (di folder umum trip, atau di subfolder destinasi tertentu)
-            let targetDestinationName = getSelectedDestinationName()
-
-            // Simpan file fisik ke folder yang sesuai
+            // --- Simpan file fisik ke folder ---
             LocalFileManager.shared.saveDocument(
                 data: data,
                 fileName: uniqueFileName,
@@ -153,10 +219,10 @@ class QuickStoreViewModel {
                 destinationName: targetDestinationName
             )
 
-            // Hitung ukuran file dalam MB
+            // --- Hitung ukuran file (dalam MB) ---
             let fileSizeMB = Double(data.count) / (1024.0 * 1024.0)
 
-            // Buat objek metadata (DocumentModel) untuk database SwiftData
+            // --- Buat metadata di SwiftData ---
             let newDoc = DocumentModel(
                 name: displayName,
                 uploadDate: Date(),
@@ -164,34 +230,32 @@ class QuickStoreViewModel {
                 category: pendingDoc.category,
                 fileName: uniqueFileName
             )
-            newDocuments.append(newDoc)
+            modelContext.insert(newDoc)
+
+            // --- Hubungkan dokumen ke trip atau destinasi ---
+            // PENTING: Set SATU sisi saja! Jangan dua-duanya!
+            if let dest = targetDestination {
+                // Dokumen masuk ke destinasi tertentu
+                newDoc.destination = dest
+            } else {
+                // Dokumen masuk ke folder umum trip
+                newDoc.trip = tripTarget
+            }
         }
 
-        // ----------------------------------------
-        // LANGKAH 2: Simpan ke SwiftData
-        //            (tambah ke trip yang ada, atau buat trip baru)
-        // ----------------------------------------
-        if let existingTrip = selectedTrip {
-            // --- Update trip yang sudah ada ---
-            addDocumentsToExistingTrip(
-                trip: existingTrip,
-                newDocuments: newDocuments,
-                modelContext: modelContext
-            )
-        } else {
-            // --- Buat trip baru ---
-            createNewTrip(
-                name: tripName,
-                startDate: startDate,
-                endDate: actualEndDate,
-                newDocuments: newDocuments,
-                modelContext: modelContext
-            )
+        // ============================================
+        // LANGKAH 5: Simpan semua perubahan ke database
+        // ============================================
+        do {
+            try modelContext.save()
+            print("✅ Semua data berhasil disimpan!")
+        } catch {
+            print("❌ Gagal menyimpan ke database: \(error.localizedDescription)")
         }
 
-        // ----------------------------------------
-        // LANGKAH 3: Reset form dan tampilkan sukses
-        // ----------------------------------------
+        // ============================================
+        // LANGKAH 6: Bersihkan form
+        // ============================================
         resetForm()
         isSaving = false
         showSaveSuccess = true
@@ -199,142 +263,45 @@ class QuickStoreViewModel {
 
 
     // ============================================================
-    // MARK: - Private: Ambil Gambar dari Photos Picker
+    // MARK: - Proses Gambar dari Photos Picker
     // ============================================================
 
     private func loadImages(_ items: [PhotosPickerItem]) {
         for item in items {
             item.loadTransferable(type: Data.self) { [weak self] result in
                 Task { @MainActor [weak self] in
-                    guard let self else { return }
+                    guard let self = self else { return }
 
                     switch result {
                     case .success(let data):
-                        if let data = data, let image = UIImage(data: data) {
-                            let docName = "Image_\(self.pendingDocuments.count + 1)"
-                            let newDoc = PendingDocument(
-                                isImage: true,
-                                image: image,
-                                pdfURL: nil,
-                                name: docName
-                            )
-                            self.pendingDocuments.append(newDoc)
+                        guard let data = data else {
+                            print("⚠️ Data gambar nil, lewati.")
+                            return
                         }
+                        guard let image = UIImage(data: data) else {
+                            print("⚠️ Tidak bisa membuat UIImage dari data.")
+                            return
+                        }
+
+                        // Langsung convert ke JPEG data dan simpan di memori
+                        // Ini mencegah crash karena UIImage bisa hilang dari memori
+                        let jpegData = image.jpegData(compressionQuality: 0.8)
+
+                        let docName = "Image_\(self.pendingDocuments.count + 1)"
+                        let newDoc = PendingDocument(
+                            isImage: true,
+                            imageData: jpegData,
+                            pdfData: nil,
+                            name: docName
+                        )
+                        self.pendingDocuments.append(newDoc)
+
                     case .failure(let error):
                         print("❌ Gagal memuat gambar: \(error.localizedDescription)")
                     }
                 }
             }
         }
-    }
-
-
-    // ============================================================
-    // MARK: - Private: Helpers Penyimpanan SwiftData
-    // ============================================================
-
-    /// Dapatkan nama destinasi yang sedang dipilih (untuk menentukan subfolder)
-    private func getSelectedDestinationName() -> String? {
-        guard let destId = selectedDestinationId else { return nil }
-
-        // Cek di destinasi dari existing trip
-        if let existingTrip = selectedTrip,
-           let dest = existingTrip.destinations.first(where: { $0.id == destId }) {
-            return dest.name
-        }
-
-        // Cek di destinasi baru yang baru saja ditambahkan di form ini
-        if let dest = destinations.first(where: { $0.id == destId }) {
-            return dest.name
-        }
-
-        return nil
-    }
-
-    /// Tambah dokumen ke trip yang sudah ada di database
-    private func addDocumentsToExistingTrip(
-        trip: TripModel,
-        newDocuments: [DocumentModel],
-        modelContext: ModelContext
-    ) {
-        // Masukkan semua dokumen baru ke SwiftData context dulu
-        for doc in newDocuments {
-            modelContext.insert(doc)
-        }
-
-        // Masukkan semua destinasi baru ke SwiftData context dulu
-        for dest in destinations {
-            modelContext.insert(dest)
-            dest.trip = trip
-            trip.destinations.append(dest)
-        }
-
-        // Distribusikan dokumen ke lokasi yang tepat
-        if let destId = selectedDestinationId {
-            // User memilih destinasi tertentu → masuk ke dokumen destinasi itu
-            if let dest = trip.destinations.first(where: { $0.id == destId }) {
-                for doc in newDocuments {
-                    doc.destination = dest
-                    dest.documents.append(doc)
-                }
-            } else if let dest = destinations.first(where: { $0.id == destId }) {
-                for doc in newDocuments {
-                    doc.destination = dest
-                    dest.documents.append(doc)
-                }
-            }
-        } else {
-            // Tidak ada destinasi dipilih → masuk ke dokumen umum trip
-            for doc in newDocuments {
-                doc.trip = trip
-                trip.generalDocuments.append(doc)
-            }
-        }
-
-        try? modelContext.save()
-    }
-
-    /// Buat trip baru dan simpan ke database
-    private func createNewTrip(
-        name: String,
-        startDate: Date,
-        endDate: Date,
-        newDocuments: [DocumentModel],
-        modelContext: ModelContext
-    ) {
-        // Buat objek trip baru
-        let newTrip = TripModel(name: name, startDate: startDate, endDate: endDate)
-        modelContext.insert(newTrip)
-
-        // Masukkan semua dokumen baru ke SwiftData context
-        for doc in newDocuments {
-            modelContext.insert(doc)
-        }
-
-        // Masukkan semua destinasi baru ke SwiftData context
-        for dest in destinations {
-            modelContext.insert(dest)
-            dest.trip = newTrip
-            newTrip.destinations.append(dest)
-        }
-
-        // Distribusikan dokumen ke lokasi yang tepat
-        if let destId = selectedDestinationId,
-           let dest = destinations.first(where: { $0.id == destId }) {
-            // Dokumen masuk ke destinasi tertentu
-            for doc in newDocuments {
-                doc.destination = dest
-                dest.documents.append(doc)
-            }
-        } else {
-            // Dokumen masuk ke folder umum trip
-            for doc in newDocuments {
-                doc.trip = newTrip
-                newTrip.generalDocuments.append(doc)
-            }
-        }
-
-        try? modelContext.save()
     }
 
 
@@ -349,7 +316,7 @@ class QuickStoreViewModel {
         isRangeEnabled = false
         durationDays = 1
         destinationName = ""
-        destinations = []
+        newDestinations = []
         destinationStartDate = Date()
         destinationEndDate = Date()
         selectedDestinationId = nil
