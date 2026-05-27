@@ -31,7 +31,7 @@ struct StarredDocumentsCard: View {
                     .foregroundColor(.black)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(Color(hex: "#EEF1EF")) // Abu-abu muda sesuai branding
+                    .background(Color.primaryGray) // Abu-abu muda sesuai branding
                     .clipShape(Capsule())
             }
             

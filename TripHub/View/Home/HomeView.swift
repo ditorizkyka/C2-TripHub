@@ -121,7 +121,7 @@ struct HomeView: View {
                                         Spacer()
                                     }
                                     .frame(maxHeight:100)
-                                    .background(Color.gray.opacity(0.2))
+                                    .background(Color.primaryGray)
                                     .cornerRadius(20)
                                 }
                             }
