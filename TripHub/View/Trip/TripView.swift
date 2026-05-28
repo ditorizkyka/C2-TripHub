@@ -6,28 +6,44 @@
 //
 
 import SwiftUI
-
+import SwiftData
 
 struct TripView: View {
     let trip: TripModel
-    
+    @State private var selectedDocument: DocumentModel? = nil
+
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+
+    // State untuk membuka halaman edit trip
+    @State private var showEditSheet = false
+    // State untuk konfirmasi hapus trip
+    @State private var showDeleteConfirmation = false
+
     var body: some View {
         // 1. ZStack Paling Luar (Agar tombol Start Journey bisa mengambang di bawah)
         ZStack(alignment: .bottom) {
-            
+
             ScrollView {
                 VStack(spacing: 0) {
                     // ==========================================
-                    // BAGIAN 1: HEADER GAMBAR & KUSTOM NAV BAR
+                    // BAGIAN 1: HEADER GAMBAR
+                    // Tampilkan foto sampul user jika ada, atau fallback ke placeholder
                     // ==========================================
-                    Image("bali_placeholder") // Ganti dengan gambar Anda
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: UIScreen.main.bounds.width, height: 380)
-                        .clipped() // Memastikan gambar tidak meluber
-                        // Menggunakan overlay untuk membuat tombol back & menu melayang di atas gambar
-                        
-                    
+                    Group {
+                        if let data = trip.coverImageData, let uiImage = UIImage(data: data) {
+                            Image(uiImage: uiImage)
+                                .resizable()
+                                .scaledToFill()
+                        } else {
+                            Image("bali_placeholder")
+                                .resizable()
+                                .scaledToFill()
+                        }
+                    }
+                    .frame(width: UIScreen.main.bounds.width, height: 380)
+                    .clipped()
+
                     // ==========================================
                     // BAGIAN 2: KONTEN PUTIH YANG MENIMPA GAMBAR
                     // ==========================================
@@ -37,59 +53,122 @@ struct TripView: View {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(trip.name)
-                                    .font(.system(size: 28, weight: .bold))
+                                    .font(.helveticaCustom(size: 24))
+                                    .fontWeight(.medium)
                                 
                                 HStack {
-                                    Image(systemName: "mappin.and.ellipse")
-                                        .foregroundColor(.gray)
-                                    Text("San Francisco") // Bisa diganti trip.location jika ada
-                                        .foregroundColor(.gray)
+                                    Image(systemName: "record.circle")
+                                        .foregroundColor(.red)
+                                    
+                                    Text("On Going Trip") // Bisa diganti trip.location jika ada
+                                        .foregroundColor(.gray).font(.helveticaCustom(size: 17))
+                                    
                                 }
                             }
                             Spacer()
                             
                             // Tombol Love
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 20))
-                                .foregroundColor(.primaryGreen)
-                                .frame(width: 44, height: 44)
-                                .background(Color.white)
-                                .clipShape(Circle())
-                                .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                            Button(action: {
+                                trip.isPinned.toggle()
+                            }) {
+                                Image(systemName: trip.isPinned ? "star.fill" : "star")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(trip.isPinned ? .primaryGreen : .gray)
+                                    .frame(width: 44, height: 44)
+                                    .background(Color.white)
+                                    .clipShape(Circle())
+                                    .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
+                            }
                         }
                         
                         // Kotak Stats (Jarak, Cuaca, Sunset)
                         HStack {
-                            StatItem(title: "Documents", value: "18 Doc")
+                            StatItem(title: "Documents", value: "\(trip.totalDocumentCount) Doc")
                             Divider().frame(height: 40)
-                            StatItem(title: "Duration", value: "8 Days")
+                            
+                            let days = Calendar.current.dateComponents([.day], from: trip.startDate, to: trip.endDate).day ?? 1
+                            StatItem(title: "Duration", value: "\(max(1, days)) Days")
+                            
                             Divider().frame(height: 40)
-                            StatItem(title: "Destination", value: "7 Dest")
+                            StatItem(title: "Destination", value: "\(trip.destinations.count) Dest")
                         }
                         .padding(.vertical, 16)
                         .background(Color.primaryGray)
                         .cornerRadius(16)
-                        .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
+                        .shadow(color: .black.opacity(0.03), radius: 10, x: 4, y: 4)
                         
                         // Deskripsi
-                        Text("An adventure is an exciting experience that is typically bold, sometimes readmore Keep hiking anywhere without any hassle.")
-                            .font(.system(size: 16))
-                            .foregroundColor(.black.opacity(0.8))
-                            .lineSpacing(4)
-                        
-                        // Galeri (Placeholder)
-                        HStack {
-                            Text("Your Destination")
-                                .font(.title3)
-                                .fontWeight(.bold)
-//                            Spacer()
-//                            Text("See all >")
-//                                .foregroundColor(.blue)
+                        if let description = trip.tripDescription, !description.isEmpty {
+                            Text(description)
+                                .font(.helveticaCustom(size: 15))
+                                .foregroundColor(.black.opacity(0.8))
+                                .lineSpacing(4)
+                        } else {
+                            Text("No description provided for this trip.")
+                                .font(.helveticaCustom(size: 15))
+                                .foregroundColor(.gray)
+                                .italic()
                         }
                         
-                        VStack {
-                            ForEach(trip.destinations) { dest in
-                                DestinationDropdownView(destination: dest)
+                        
+                        // ==========================================
+                        // SECTION: YOUR DOCUMENTS
+                        // ==========================================
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Your Documents")
+                                .font(.helveticaCustom(size: 20))
+                            
+                            // Pengondisian jika dokumen kosong
+                            if trip.generalDocuments.isEmpty {
+                                Text("No documents attached yet.")
+                                    .font(.helveticaCustom(size: 14))
+                                    .foregroundColor(.gray)
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.primaryGray)
+                                    .cornerRadius(16)
+                            } else {
+                                // Horizontal ScrollView (Tinggi menyesuaikan konten)
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 16) {
+                                        // Looping data asli
+                                        ForEach(trip.generalDocuments) { doc in
+                                            DocumentCardView(document: doc) {
+                                                selectedDocument = doc
+                                            }
+                                            .frame(width: 100)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 16)
+                                }
+                                .background(Color.primaryGray)
+                                .cornerRadius(16)
+                                .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 4)
+                            }
+                        }
+                        
+                        
+                        // ==========================================
+                        // SECTION: YOUR DESTINATION
+                        // ==========================================
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Your Destination")
+                                .font(.helveticaCustom(size: 20))
+                            
+                            // Pengondisian jika destinasi kosong
+                            if trip.destinations.isEmpty {
+                                Text("No destinations added yet.")
+                                    .font(.helveticaCustom(size: 14))
+                                    .foregroundColor(.gray)
+                                    .padding()
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(Color.primaryGray)
+                                    .cornerRadius(16)
+                            } else {
+                                ForEach(trip.destinations) { dest in
+                                    DestinationDropdownView(destination: dest, selectedDocument: $selectedDocument)
+                                }
                             }
                         }
                         
@@ -97,19 +176,22 @@ struct TripView: View {
                         Spacer().frame(height: 120)
                     }
                     .padding(24)
-                    .background(Color.backgroundGray) // Warna background dasar (agak kebiruan/abu terang)
-                    // 👇 INI KUNCINYA: Memotong ujung atasnya saja
+                    .background(Color.backgroundGray) // Warna background dasar
+                    // INI KUNCINYA: Memotong ujung atasnya saja
                     .clipShape(.rect(topLeadingRadius: 40, topTrailingRadius: 40))
-                    // 👇 INI KUNCINYA: Menarik view ini ke atas sejauh 40px agar menimpa gambar
+                    // INI KUNCINYA: Menarik view ini ke atas sejauh 40px agar menimpa gambar
                     .offset(y: -40)
                     // Mengembalikan ukuran layout bawah yang terpotong karena offset
                     .padding(.bottom, -40)
                 }
                 
             }
-            .ignoresSafeArea(edges: .top)
-            // Wajib di ScrollView agar gambar mentok ke atas
-            
+            .ignoresSafeArea(edges: .top) // Wajib di ScrollView agar gambar mentok ke atas
+            // ── Sheet: Preview dokumen ─────────────────────────
+            // PENTING: .sheet harus di sini (di luar ScrollView/Grid), bukan di dalam
+            .sheet(item: $selectedDocument) { doc in
+                DocumentPreviewView(document: doc)
+            }
             // ==========================================
             // BAGIAN 3: FLOATING BUTTON (START JOURNEY)
             // ==========================================
@@ -125,38 +207,58 @@ struct TripView: View {
                     .cornerRadius(30)
                     .padding(.horizontal, 24)
             }
-            .padding(.bottom, 10)
-            // Jarak dari bawah layar
+            .padding(.bottom, 10) // Jarak dari bawah layar
         }
-        // 👇 TAMBAHKAN TOOLBAR DI SINI (Di luar ZStack)
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(action: {
-                            // Aksi saat tombol Edit ditekan
-                            // Misalnya: memunculkan sheet untuk edit trip
-                            print("Tombol Edit Ditekan!")
-                        }) {
-                            // Anda bisa memakai Teks atau Ikon
-                            Text("Edit")
-                                .fontWeight(.semibold)
-                                .foregroundColor(.blue) // Sesuaikan warnanya agar kontras dengan gambar Anda
-                            
-                            // Atau jika ingin menggunakan ikon pensil:
-                            // Image(systemName: "pencil.circle.fill")
-                            //    .font(.title2)
-                            //    .symbolRenderingMode(.multicolor)
-                        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(action: {
+                        showEditSheet = true
+                    }) {
+                        Label("Edit", systemImage: "pencil")
                     }
+                    
+                    // role: .destructive otomatis membuat warna teks menjadi merah di menu
+                    Button(role: .destructive, action: {
+                        showDeleteConfirmation = true
+                    }) {
+                        Label("Delete", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 18, weight: .semibold))
                 }
-                // Opsional: Agar background navigation bar transparan menyatu dengan gambar
-                .toolbarBackground(.hidden, for: .navigationBar)
-        
+            }
+        }
+        .toolbarBackground(.hidden, for: .navigationBar)
+        // Sheet untuk halaman edit trip
+        .sheet(isPresented: $showEditSheet) {
+            EditTripView(trip: trip)
+        }
+        // Dialog konfirmasi untuk delete trip
+        .confirmationDialog(
+            "Delete Trip?",
+            isPresented: $showDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                modelContext.delete(trip)
+                try? modelContext.save()
+                dismiss()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete '\(trip.name)'? This action cannot be undone and will delete all associated destinations and documents.")
+        }
     }
 }
+
+// MARK: - Komponen Pendukung
 
 struct DestinationDropdownView: View {
     // Data destinasi dan dokumennya dari SwiftData
     @Bindable var destination: DestinationModel
+    @Binding var selectedDocument: DocumentModel?
     
     // State untuk kontrol buka/tutup dropdown
     @State private var isExpanded: Bool = false
@@ -170,20 +272,14 @@ struct DestinationDropdownView: View {
                         .font(.helveticaCustom(size: 16))
                         .foregroundColor(.gray)
                     
-                    // 👇 Horizontal ScrollView
+                    // Horizontal ScrollView
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 16) {
-                            // Looping data asli dari destinasi Anda
                             ForEach(destination.documents) { doc in
-                                
-                                // 👇 Memanggil DocumentCardView buatan Anda
                                 DocumentCardView(document: doc) {
-                                    // Aksi saat dokumen di-tap
-                                    print("Dokumen \(doc.name) ditekan!")
-                                    // Anda bisa memanggil navigasi ke PDF Viewer di sini
+                                    selectedDocument = doc
                                 }
-                                // Batasi lebarnya agar rapi berjejer ke samping
-                                .frame(width: 100)
+//                                .frame(width: 100)
                             }
                         }
                         .padding(.vertical, 8)
@@ -204,19 +300,15 @@ struct DestinationDropdownView: View {
             } label: {
                 // Tampilan judul dropdown
                 Text("📍 Destination : \(destination.name)")
-                    .font(.headline)
+                    .font(.helveticaCustom(size: 16))
                     .foregroundColor(.black)
             }
             .padding()
-            .background(Color("primaryGray")) // Sesuaikan nama warna Anda
+            .background(Color.primaryGray) // Sesuaikan nama warna Anda
             .cornerRadius(12)
         }
     }
 }
-
-
-
-// MARK: - Komponen Bantuan agar kode rapi
 
 // Komponen Tombol Bulat di Header
 struct CircleButton: View {
@@ -240,15 +332,18 @@ struct StatItem: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(title)
-                .font(.system(size: 12))
+                .font(.helveticaCustom(size: 13))
                 .foregroundColor(.gray)
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.helveticaCustom(size: 20))
+                .fontWeight(.medium)
                 .foregroundColor(.black)
         }
         .frame(maxWidth: .infinity)
     }
 }
+
+// MARK: - Preview
 
 #Preview {
     let dummyTrip = TripModel(
@@ -260,15 +355,12 @@ struct StatItem: View {
     return TripView(trip: dummyTrip)
 }
 
-#Preview {
-    
-    // 3. Buat data dummy Anda
+#Preview("Tavarua Trip") {
     let dummyTrip = TripModel(
         name: "Liburan ke Tavarua",
         startDate: Date(),
         endDate: Date().addingTimeInterval(86400 * 3),
         isPinned: false
     )
-    
     return TripView(trip: dummyTrip)
 }

@@ -18,6 +18,13 @@ final class TripModel {
     var imageSeed: Int
     var isPinned: Bool
 
+    // Deskripsi opsional untuk trip ini (bisa diisi atau dikosongkan)
+    var tripDescription: String?
+
+    // Foto sampul trip dalam format JPEG bytes (opsional)
+    // Disimpan langsung di database agar mudah diakses
+    var coverImageData: Data?
+
     // --- Relasi ke Child (Cascade Delete) ---
     // Jika Trip ini dihapus, semua Destinasinya ikut terhapus otomatis
     @Relationship(deleteRule: .cascade, inverse: \DestinationModel.trip)
@@ -36,7 +43,9 @@ final class TripModel {
         startDate: Date,
         endDate: Date,
         imageSeed: Int? = nil,
-        isPinned: Bool = false
+        isPinned: Bool = false,
+        tripDescription: String? = nil,
+        coverImageData: Data? = nil
     ) {
         self.id = id
         self.name = name
@@ -44,6 +53,8 @@ final class TripModel {
         self.endDate = endDate
         self.imageSeed = imageSeed ?? Int.random(in: 0...2)
         self.isPinned = isPinned
+        self.tripDescription = tripDescription
+        self.coverImageData = coverImageData
     }
 
     // --- Helper: Status Perjalanan ---

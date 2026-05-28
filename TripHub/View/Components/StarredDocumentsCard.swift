@@ -12,21 +12,25 @@ struct StarredDocumentsCard: View {
     var route: String = "From Paris to Berlin"
     var status: String = "Delivered"
     
+    let document : DocumentModel
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Header: Status Badge
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Order \(orderNumber)")
+                    Text("Uploaded on \(Text(document.uploadDate.formatted(.dateTime.day().month(.wide).year())))")
+                        .lineLimit(1)
                         .font(.system(size: 14))
                         .foregroundColor(.black.opacity(0.6))
                     
-                    Text(route)
+                    Text(document.name)
+                        .lineLimit(1)
                         .font(.system(size: 18, weight: .semibold))
                         .foregroundColor(.black)
                 }
                 Spacer()
-                Text(status)
+                Text(document.categoryRawValue)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.black)
                     .padding(.horizontal, 16)

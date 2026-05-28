@@ -40,6 +40,12 @@ class QuickStoreViewModel {
     var isRangeEnabled = false
     var durationDays = 1
 
+    // Deskripsi opsional yang bisa diisi user saat membuat trip baru
+    var tripDescription: String = ""
+
+    // Data foto sampul yang dipilih dari Photos picker (opsional)
+    var coverImageData: Data? = nil
+
     // Tanggal akhir dihitung otomatis
     var endDate: Date {
         return Calendar.current.date(byAdding: .day, value: durationDays, to: startDate) ?? startDate
@@ -135,8 +141,15 @@ class QuickStoreViewModel {
             // User memilih trip yang sudah ada
             tripTarget = existing
         } else {
-            // Buat trip baru
-            let newTrip = TripModel(name: tripName, startDate: startDate, endDate: finalEndDate)
+            // Buat trip baru — sertakan description dan cover image jika diisi
+            let desc = tripDescription.trimmingCharacters(in: .whitespaces)
+            let newTrip = TripModel(
+                name: tripName,
+                startDate: startDate,
+                endDate: finalEndDate,
+                tripDescription: desc.isEmpty ? nil : desc,
+                coverImageData: coverImageData
+            )
             modelContext.insert(newTrip)
             tripTarget = newTrip
         }
@@ -315,6 +328,8 @@ class QuickStoreViewModel {
         startDate = Date()
         isRangeEnabled = false
         durationDays = 1
+        tripDescription = ""
+        coverImageData = nil
         destinationName = ""
         newDestinations = []
         destinationStartDate = Date()

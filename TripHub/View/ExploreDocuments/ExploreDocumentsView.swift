@@ -180,14 +180,15 @@ struct DocumentCardView: View {
 
                 // Thumbnail file
                 DocumentThumbnailView(document: document)
-                    .frame(height: thumbnailSize)
+                    // 👇 FIX 1: Set width dan height menggunakan nilai yang sama agar selalu kotak sempurna (1:1)
+                    .frame(width: thumbnailSize, height: thumbnailSize)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                     .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
                     .overlay(alignment: .topTrailing) {
                         // Pin badge di sudut kanan atas
                         if document.isPinned {
                             Image(systemName: "pin.fill")
-                                .font(.system(size: 9, weight: .bold))
+                                .font(.helveticaCustom(size: 15, weight: .bold))
                                 .foregroundColor(.white)
                                 .padding(4)
                                 .background(Color(hex: "#4AB855"))
@@ -202,12 +203,18 @@ struct DocumentCardView: View {
                     .multilineTextAlignment(.center)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.primary)
+                    // 👇 FIX 2: Kunci tinggi teks untuk 2 baris (sekitar 34pt) dan ratakan ke atas.
+                    // Ini mencegah tanggal di bawahnya naik-turun jika judul hanya 1 baris.
+                    .frame(height: 34, alignment: .top)
 
                 // Tanggal upload
                 Text(document.uploadDate, style: .date)
                     .font(.system(size: 10))
                     .foregroundStyle(.secondary)
             }
+            // 👇 Opsional tapi penting: Kunci lebar VStack sebesar thumbnail
+            // agar teks panjang ikut terpotong (wrap) rapi menyesuaikan lebar gambar.
+            .frame(width: thumbnailSize)
         }
         .buttonStyle(.plain)
         // Long-press menu
@@ -269,6 +276,7 @@ struct DocumentThumbnailView: View {
                     Image(systemName: iconName)
                         .font(.system(size: 28, weight: .light))
                         .foregroundColor(.white.opacity(0.9))
+                       
 
                     // Label ekstensi file (misal: "PDF", "JPG")
                     Text(fileExtension.uppercased())

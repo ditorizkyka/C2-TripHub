@@ -17,11 +17,18 @@ struct GlassmorphismCardView: View {
             ZStack(alignment: .bottom) {
                 // 1. GAMBAR LATAR BELAKANG
                 // Ganti "bali_placeholder" dengan nama gambar Anda di Assets
-                Image("bali_placeholder")
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 360, height: 240)
-                    .clipShape(RoundedRectangle(cornerRadius: 24))
+                Group {
+                    if let data = trip.coverImageData, let uiImage = UIImage(data: data) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                    } else {
+                        // Fallback placeholder when data is missing or invalid
+                        Color.gray.opacity(0.2)
+                    }
+                }
+                .aspectRatio(contentMode: .fill)
+                .frame(width: 360, height: 240)
+                .clipShape(RoundedRectangle(cornerRadius: 24))
                 
                 // 2. TOMBOL HATI (GLASS) DI KANAN ATAS
                 VStack {

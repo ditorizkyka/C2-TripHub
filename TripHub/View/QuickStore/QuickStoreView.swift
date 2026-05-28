@@ -26,6 +26,9 @@ struct QuickStoreView: View {
     // Toggle untuk menampilkan PDF picker
     @State private var showPDFPicker = false
 
+    // PhotosPicker binding khusus untuk foto sampul trip
+    @State private var coverImagePickerItem: PhotosPickerItem? = nil
+
     // Untuk menutup halaman ini (sheet)
     @Environment(\.dismiss) private var dismiss
 
@@ -182,6 +185,91 @@ struct QuickStoreView: View {
                         Text("Akan membuat trip baru: \"\(vm.searchText)\"")
                             .font(.caption)
                             .foregroundColor(.secondary)
+                    }
+                }
+
+                // ── Optional fields (only shown when creating a new trip) ────
+                // Cover image and description are only relevant for new trips.
+                // When editing an existing trip, use EditTripView instead.
+                if vm.selectedTrip == nil && !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+                    Divider()
+
+                    // Cover Image picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Cover Image (Optional)")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+
+                        PhotosPicker(selection: $coverImagePickerItem, matching: .images) {
+                            // Show a preview if image already selected, else show placeholder
+                            if let data = vm.coverImageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(height: 120)
+                                    .frame(maxWidth: .infinity)
+                                    .clipped()
+                                    .cornerRadius(12)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(Color.green, lineWidth: 2)
+                                    )
+                            } else {
+                                HStack(spacing: 10) {
+                                    Image(systemName: "photo.badge.plus")
+                                        .font(.title2)
+                                    Text("Pilih foto sampul")
+                                        .font(.subheadline)
+                                }
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 80)
+                                .foregroundColor(.green)
+                                .background(Color.green.opacity(0.1))
+                                .cornerRadius(12)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .stroke(Color.green, style: StrokeStyle(lineWidth: 2, dash: [5]))
+                                )
+                            }
+                        }
+                        // Load the raw Data when user picks an image
+                        .onChange(of: coverImagePickerItem) { _, newItem in
+                            guard let newItem else {
+                                vm.coverImageData = nil
+                                return
+                            }
+                            Task {
+                                if let data = try? await newItem.loadTransferable(type: Data.self) {
+                                    vm.coverImageData = data
+                                }
+                            }
+                        }
+                    }
+
+                    // Description TextEditor
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Description (Optional)")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+
+                        ZStack(alignment: .topLeading) {
+                            // Placeholder text
+                            if vm.tripDescription.isEmpty {
+                                Text("Ceritakan sedikit tentang trip ini...")
+                                    .foregroundColor(Color(.placeholderText))
+                                    .font(.body)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 8)
+                            }
+                            TextEditor(text: $vm.tripDescription)
+                                .frame(minHeight: 90)
+                                .scrollContentBackground(.hidden)
+                        }
+                        .padding(8)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(10)
                     }
                 }
             }
