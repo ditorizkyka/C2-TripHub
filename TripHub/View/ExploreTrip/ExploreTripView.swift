@@ -95,14 +95,22 @@ struct ExploreTripView: View {
             // 👇 Tambahkan overlay di sini (menempel pada ScrollView)
             .overlay {
                 if filteredTrips.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "tray")
-                            .font(.system(size: 40))
-                            .foregroundColor(.gray)
+                    VStack(spacing: 18) {
+                        Image(systemName: "map")
+                            .font(.system(size: 48, weight: .light))
+                            .foregroundStyle(.gray)
                         
-                        Text("No trips found")
-                            .font(.helveticaCustom(size: 16))
-                            .foregroundColor(.gray)
+                        VStack(spacing: 10) {
+                            Text("No trips found")
+                                .font(.helveticaCustom(size: 22, weight: .medium))
+                                .foregroundStyle(.gray)
+                            
+                            Text("You don't have any trips\nthat match this filter.")
+                                .font(.system(size: 15))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(4)
+                        }
                     }
                     // Frame ini memastikan dia mengambil seluruh ruang layar dan berada di tengah
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -131,26 +139,33 @@ struct ExploreTripView: View {
 
 
 
-struct ChipItemView : View {
-    var title : String
-    var isSelected : Bool
+struct ChipItemView: View {
+    var title: String
+    var isSelected: Bool
     
-    var body : some View {
+    var body: some View {
         Text(title)
             .font(.helveticaCustom(size: 16, weight: .regular))
-//            .fontWeight(.medium)
+            .fontWeight(isSelected ? .bold : .regular)
             .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        // Warna berubah berdasarkan status terpilih
-                        .foregroundColor(isSelected ? .white : .black.opacity(0.7))
-                        .background(isSelected ? Color.black : Color.gray.opacity(0.0))
-                        // 5. Membuat bentuk lonjong (Kapsul)
-                        .clipShape(Capsule())
-                        // 6. Opsional: Garis tepi tipis untuk chip yang tidak terpilih
-                        .overlay(
-                            Capsule()
-                                .stroke(Color.gray.opacity(0.4), lineWidth: isSelected ? 0 : 1)
-                        )
+            .padding(.vertical, 8)
+            
+            // 1. Warna Teks (Foreground)
+            // Menggunakan "primaryGreen" saat dipilih, dan abu-abu standar saat tidak dipilih
+            .foregroundColor(isSelected ? Color("primaryGreen") : .primary.opacity(0.7))
+            
+            // 2. Warna Latar (Background)
+            // Menggunakan "secondaryGreen". Karena sudah di-set di Assets,
+            // SwiftUI otomatis pakai warna terang di Light Mode dan gelap di Dark Mode
+            .background(isSelected ? Color("secondaryGreen") : Color.clear)
+            
+            .clipShape(Capsule())
+            
+            // 3. Garis Tepi (Border)
+            .overlay(
+                Capsule()
+                    .stroke(isSelected ? Color.clear : Color.gray.opacity(0.4), lineWidth: isSelected ? 0 : 1)
+            )
     }
 }
 

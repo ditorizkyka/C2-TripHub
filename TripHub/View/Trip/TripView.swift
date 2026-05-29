@@ -19,7 +19,28 @@ struct TripView: View {
     @State private var showEditSheet = false
     // State untuk konfirmasi hapus trip
     @State private var showDeleteConfirmation = false
-
+    
+    
+    // 👇 TAMBAHKAN FUNGSI INI
+        private func tripDurationText() -> String {
+            let calendar = Calendar.current
+            
+            // Cek apakah start date dan end date jatuh di hari yang sama
+            if calendar.isDate(trip.startDate, inSameDayAs: trip.endDate) {
+                return "One day trip"
+            } else {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "dd MMM yyyy" // Format: 26 May 2020
+                
+                // Jika ingin menggunakan bahasa Indonesia (misal: 26 Mei 2020), hilangkan komentar di bawah ini:
+                // formatter.locale = Locale(identifier: "id_ID")
+                
+                let startString = formatter.string(from: trip.startDate)
+                let endString = formatter.string(from: trip.endDate)
+                
+                return "\(startString) - \(endString)"
+            }
+        }
     var body: some View {
         // 1. ZStack Paling Luar (Agar tombol Start Journey bisa mengambang di bawah)
         ZStack(alignment: .bottom) {
@@ -36,7 +57,7 @@ struct TripView: View {
                                 .resizable()
                                 .scaledToFill()
                         } else {
-                            Image("bali_placeholder")
+                            Image("trip_\(trip.imageSeed + 1)")
                                 .resizable()
                                 .scaledToFill()
                         }
@@ -56,13 +77,14 @@ struct TripView: View {
                                     .font(.helveticaCustom(size: 24))
                                     .fontWeight(.medium)
                                 
-                                HStack {
-                                    Image(systemName: "record.circle")
-                                        .foregroundColor(.red)
-                                    
-                                    Text("On Going Trip") // Bisa diganti trip.location jika ada
-                                        .foregroundColor(.gray).font(.helveticaCustom(size: 17))
-                                    
+                                // 👇 TAMBAHKAN TEXT INI
+                                HStack(spacing:10) {
+                                    Image(systemName: "clock")
+                                        .foregroundStyle(.gray)
+                                        .font(.system(size: 15))
+                                    Text(tripDurationText())
+                                        .font(.helveticaCustom(size: 15))
+                                        .foregroundStyle(.gray)
                                 }
                             }
                             Spacer()
@@ -75,7 +97,7 @@ struct TripView: View {
                                     .font(.system(size: 20))
                                     .foregroundColor(trip.isPinned ? .primaryGreen : .gray)
                                     .frame(width: 44, height: 44)
-                                    .background(Color.white)
+                                    .background(Color(.systemBackground))
                                     .clipShape(Circle())
                                     .shadow(color: .black.opacity(0.05), radius: 5, x: 0, y: 2)
                             }
@@ -101,7 +123,7 @@ struct TripView: View {
                         if let description = trip.tripDescription, !description.isEmpty {
                             Text(description)
                                 .font(.helveticaCustom(size: 15))
-                                .foregroundColor(.black.opacity(0.8))
+                                .foregroundColor(.secondary)
                                 .lineSpacing(4)
                         } else {
                             Text("No description provided for this trip.")
@@ -192,22 +214,6 @@ struct TripView: View {
             .sheet(item: $selectedDocument) { doc in
                 DocumentPreviewView(document: doc)
             }
-            // ==========================================
-            // BAGIAN 3: FLOATING BUTTON (START JOURNEY)
-            // ==========================================
-            Button(action: {
-                // Aksi Start Journey
-            }) {
-                Text("Start Journey")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(30)
-                    .padding(.horizontal, 24)
-            }
-            .padding(.bottom, 10) // Jarak dari bawah layar
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -299,9 +305,9 @@ struct DestinationDropdownView: View {
                 
             } label: {
                 // Tampilan judul dropdown
-                Text("📍 Destination : \(destination.name)")
-                    .font(.helveticaCustom(size: 16))
-                    .foregroundColor(.black)
+                Text("Destination : \(destination.name)")
+                    .font(.helveticaCustom(size: 16, weight: .medium))
+                    .foregroundColor(.primary)
             }
             .padding()
             .background(Color.primaryGray) // Sesuaikan nama warna Anda
@@ -316,9 +322,9 @@ struct CircleButton: View {
     var body: some View {
         Image(systemName: icon)
             .font(.system(size: 16, weight: .bold))
-            .foregroundColor(.black)
+            .foregroundColor(.primary)
             .frame(width: 44, height: 44)
-            .background(Color.white)
+            .background(Color(.systemBackground))
             .clipShape(Circle())
             .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
     }
@@ -336,8 +342,8 @@ struct StatItem: View {
                 .foregroundColor(.gray)
             Text(value)
                 .font(.helveticaCustom(size: 20))
-                .fontWeight(.medium)
-                .foregroundColor(.black)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
         }
         .frame(maxWidth: .infinity)
     }

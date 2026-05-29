@@ -22,8 +22,9 @@ struct GlassmorphismCardView: View {
                         Image(uiImage: uiImage)
                             .resizable()
                     } else {
-                        // Fallback placeholder when data is missing or invalid
-                        Color.gray.opacity(0.2)
+                        // Fallback to random cover from assets
+                        Image("trip_\(trip.imageSeed + 1)")
+                            .resizable()
                     }
                 }
                 .aspectRatio(contentMode: .fill)
@@ -31,12 +32,10 @@ struct GlassmorphismCardView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 24))
                 
                 // 2. TOMBOL HATI (GLASS) DI KANAN ATAS
-                VStack {
-                    HStack {
-                        Spacer()
-                        Button(action: {
-                            print("Favorite ditekan")
-                        }) {
+                if trip.isPinned {
+                    VStack {
+                        HStack {
+                            Spacer()
                             Image(systemName: "star.fill")
                                 .font(.system(size: 20, weight: .medium))
                                 .foregroundColor(Color(hex: "#4AB855"))
@@ -47,10 +46,10 @@ struct GlassmorphismCardView: View {
                                     Circle()
                                         .stroke(Color.white.opacity(0.6), lineWidth: 1)
                                 )
+                                .padding(16)
                         }
-                        .padding(16)
+                        Spacer() // Mendorong tombol ke atas
                     }
-                    Spacer() // Mendorong tombol ke atas
                 }
                 
                 // 3. KOTAK INFORMASI BAWAH (GLASS)
@@ -62,11 +61,11 @@ struct GlassmorphismCardView: View {
                         Text(trip.name)
                             .font(.title3)
                             .fontWeight(.bold)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                         
                         Text("\(trip.startDate) - \(trip.endDate)")
                             .font(.footnote)
-                            .foregroundColor(.black.opacity(0.6))
+                            .foregroundColor(.secondary)
                             .lineLimit(1)
                     }
                     
@@ -81,16 +80,16 @@ struct GlassmorphismCardView: View {
                         }
                         .font(.subheadline)
                         .fontWeight(.medium)
-                        .foregroundColor(.black)
+                        .foregroundColor(.primary)
                         
                         // Format Harga
                         Text("\(trip.destinations.count)")
                             .font(.footnote)
                             .fontWeight(.bold)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                         + Text(" Destination")
                             .font(.footnote)
-                            .foregroundColor(.black.opacity(0.6))
+                            .foregroundColor(.secondary)
                     }
                 }
                 .padding(16)

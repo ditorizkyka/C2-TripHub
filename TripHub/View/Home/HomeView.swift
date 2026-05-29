@@ -9,6 +9,10 @@ struct HomeView: View {
     // ─── SwiftData Query ───────────────────────────────────────────────────────
     /// Fetch all trips sorted by start date (soonest first)
     @Query(sort: \TripModel.startDate, order: .forward) private var allTrips: [TripModel]
+    
+    @State private var isShowingCamera = false
+    @State private var isShowingTripSheet = false
+    @State private var capturedImage: UIImage?
 
     // ─── Local UI State ────────────────────────────────────────────────────────
     @State private var showQuickStore = false
@@ -23,14 +27,7 @@ struct HomeView: View {
         endPoint: .bottomTrailing
     )
 
-    let upcomingGradient = LinearGradient(
-        gradient: Gradient(colors: [
-            Color(hex: "#A8D8EA"),
-            Color(hex: "#6CB4D8").opacity(0.7)
-        ]),
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-    )
+    
 
     // =========================================================================
     // MARK: – Trip Classification Methods
@@ -87,64 +84,81 @@ struct HomeView: View {
     // =========================================================================
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
+            NavigationStack {
                 ZStack {
-                    Color.backgroundGray
-                    VStack(alignment: .leading, spacing: 24) {
-
-                        // ── Conditional Content ────────────────────────────
-                        Group {
-                            if hasNoActiveTrips {
-                                emptyStateSection
-                            } else if let trip = featuredTrip {
+                    
+                    
+                    // 2. Pisahkan logika di sini (di luar ScrollView)
+                    if hasNoActiveTrips {
+                        // Tampil di tengah persis tanpa ScrollView
+                        emptyStateSection
+                    } else if let trip = featuredTrip {
+                        // Gunakan ScrollView hanya jika ada data trip
+                        ScrollView {
+                            VStack(alignment: .leading, spacing: 24) {
                                 featuredTripSection(trip: trip)
                                 categoriesSection(trip: trip)
-                                recentDocumentsSection(trip: trip, )
+                                recentDocumentsSection(trip: trip) // typo koma sudah diperbaiki
                             }
+                            .padding(.horizontal)
+                            .padding(.top, 10)
+                            .padding(.bottom, 40)
                         }
                     }
-                    .padding(.horizontal)
-                    .padding(.top, 10)
-                    .padding(.bottom, 40)
                 }
-            }
-            .navigationTitle("Home")
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button(action: {
-                        // Camera action
-                    }) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(.black)
-                            .frame(width: 36, height: 36)
-                            .background(Color.white)
-                            .clipShape(Circle())
-                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
-                    }
+                .navigationTitle("Home")
+                .toolbar {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        Button(action: {
+                            isShowingCamera = true
+                        }) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 18))
+                                .foregroundColor(.primary)
+                                .frame(width: 36, height: 36)
+                                .background(Color(.systemBackground))
+                                .clipShape(Circle())
+                                .shadow(color: Color.primary.opacity(0.08), radius: 8, x: 0, y: 4)
+                        }
 
-                    Button(action: {
-                        showQuickStore = true
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(.white)
-                            .frame(width: 36, height: 36)
-                            .background(Color(hex: "#4AB855"))
-                            .clipShape(Circle())
+                        Button(action: {
+                            showQuickStore = true
+                        }) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 36, height: 36)
+                                .background(Color(hex: "#4AB855"))
+                                .clipShape(Circle())
+                        }
                     }
                 }
-            }
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showQuickStore) {
-                QuickStoreView()
-            }
-            .sheet(item: $selectedDocument) { doc in
-                DocumentPreviewView(document: doc)
+                .toolbarBackground(.hidden, for: .navigationBar)
+                .sheet(isPresented: $showQuickStore) {
+                    QuickStoreView()
+                }
+                .sheet(item: $selectedDocument) { doc in
+                    DocumentPreviewView(document: doc)
+                }
+                // Menampilkan Kamera
+                        .fullScreenCover(isPresented: $isShowingCamera) {
+                            CameraPickerView(image: $capturedImage, onDismiss: {
+                                // Beri sedikit jeda agar kamera selesai menutup sebelum memunculkan sheet
+                                if capturedImage != nil {
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                                        isShowingTripSheet = true
+                                    }
+                                }
+                            })
+                        }
+                        // Menampilkan Sheet Pemilihan Trip
+                        .sheet(isPresented: $isShowingTripSheet) {
+                            if let image = capturedImage {
+                                AssignTripSheet(capturedImage: image)
+                            }
+                        }
             }
         }
-    }
 
     // =========================================================================
     // MARK: – Sub-Views
@@ -153,67 +167,37 @@ struct HomeView: View {
     // ── Priority 3: No trips at all ──────────────────────────────────────────
 
     @ViewBuilder
-    private var emptyStateSection: some View {
-        VStack(spacing: 32) {
-            Spacer(minLength: 60)
-
-            // Illustrated icon
-            ZStack {
-                Circle()
-                    .fill(Color.primaryGreen.opacity(0.12))
-                    .frame(width: 120, height: 120)
-
-                Image(systemName: "airplane.departure")
-                    .font(.system(size: 48, weight: .light))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [Color.primaryGreen, Color.secondaryGreen],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
+        private var emptyStateSection: some View {
+            VStack(spacing: 18) {
+                // Hapus Spacer() di sini karena sudah otomatis ke tengah
+                
+                // Illustrated icon
+                ZStack {
+                    Image(systemName: "airplane.departure")
+                        .font(.system(size: 48, weight: .light))
+                        .foregroundStyle(
+                            .gray
                         )
-                    )
-            }
-
-            VStack(spacing: 10) {
-                Text("No trips on the horizon 🌤️")
-                    .font(.helveticaCustom(size: 22))
-                    .multilineTextAlignment(.center)
-
-                Text("You have no ongoing or upcoming trips.\nWanna create another trip?")
-                    .font(.system(size: 15))
-                    .foregroundColor(.gray)
-                    .multilineTextAlignment(.center)
-                    .lineSpacing(4)
-            }
-
-            // Call-to-action button
-            Button(action: {
-                showQuickStore = true
-            }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "plus.circle.fill")
-                        .font(.system(size: 18))
-                    Text("Create a Trip")
-                        .font(.system(size: 16, weight: .semibold))
                 }
-                .foregroundColor(.white)
-                .padding(.horizontal, 32)
-                .padding(.vertical, 14)
-                .background(
-                    LinearGradient(
-                        colors: [Color.primaryGreen, Color.secondaryGreen],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                )
-                .clipShape(Capsule())
-                .shadow(color: Color.primaryGreen.opacity(0.35), radius: 10, x: 0, y: 6)
-            }
 
-            Spacer(minLength: 40)
+                VStack(spacing: 10) {
+                    Text("No trips on the horizon")
+                        .foregroundStyle(.gray)
+                        .font(.helveticaCustom(size: 22, weight: .medium))
+                        .multilineTextAlignment(.center)
+
+                    Text("You have no ongoing or upcoming trips.\nCreate new Trip to save Documents here.")
+                        .font(.system(size: 15))
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .lineSpacing(4)
+                }
+                
+             
+            }
+            // Tambahkan modifier ini agar view mengambil seluruh ruang layar dan menjebak konten di tengah
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
-        .frame(maxWidth: .infinity)
-    }
 
     // ── Priority 1 & 2: Featured Trip Card ───────────────────────────────────
 
@@ -226,24 +210,7 @@ struct HomeView: View {
                 Text(featuredLabel)
                     .font(.helveticaCustom(size: 23))
 
-                Spacer()
-
-                // Live indicator for ongoing trips
-                if ongoingTrip != nil {
-                    HStack(spacing: 5) {
-                        Circle()
-                            .fill(Color.red)
-                            .frame(width: 7, height: 7)
-                            .overlay(
-                                Circle()
-                                    .fill(Color.red.opacity(0.3))
-                                    .frame(width: 14, height: 14)
-                            )
-                        Text("Live")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.red)
-                    }
-                }
+                
             }
 
             VStack(alignment: .leading, spacing: 15) {
@@ -252,9 +219,10 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("Your Trip")
                             .font(.system(size: 14))
-                            .foregroundColor(.black.opacity(0.7))
+                            .foregroundColor(.secondary)
                         Text(trip.name)
                             .font(.system(size: 18, weight: .bold))
+                            .foregroundColor(.primary)
                     }
 
                     Spacer()
@@ -289,17 +257,19 @@ struct HomeView: View {
                 // ── Row 3: Stats ──
                 HStack {
                     VStack(alignment: .leading) {
-                        Text("Documents").font(.caption).foregroundColor(.black.opacity(0.6))
+                        Text("Documents").font(.caption).foregroundColor(.secondary)
                         Text("\(trip.totalDocumentCount) Doc")
                             .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
                     }
 
                     Spacer()
 
                     VStack(alignment: .leading) {
-                        Text("Destination").font(.caption).foregroundColor(.black.opacity(0.6))
+                        Text("Destination").font(.caption).foregroundColor(.secondary)
                         Text("\(trip.destinations.count) Dest")
                             .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.primary)
                     }
 
                     Spacer()
@@ -307,14 +277,15 @@ struct HomeView: View {
                     VStack(alignment: .trailing) {
                         Text(ongoingTrip != nil ? "Arrival date" : "Starts on")
                             .font(.caption)
-                            .foregroundColor(.black.opacity(0.6))
+                            .foregroundColor(.secondary)
                         Text(arrivalText(for: trip))
                             .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
                     }
                 }
             }
             .padding(20)
-            .background(ongoingTrip != nil ? ongoingGradient : upcomingGradient)
+            .background(ongoingGradient)
             .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
         }
     }
@@ -358,19 +329,24 @@ struct HomeView: View {
     // ── Recent Documents Section ──────────────────────────────────────────────
 
     // ── Recent Documents Section ──────────────────────────────────────────────
-
+    
+    
     @ViewBuilder
     private func recentDocumentsSection(trip: TripModel) -> some View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Recent Documents")
                 .font(.helveticaCustom(size: 23))
 
-            // Asumsi: TripModel memiliki array dokumen (misal: trip.documents)
-            // dan DocumentModel memiliki properti tanggal (misal: createdAt).
-            // Sesuaikan nama properti ini dengan schema SwiftData yang kamu buat.
-            let allDocuments = trip.generalDocuments ?? []
+            // 1. Ambil dokumen umum
+            let generalDocs = trip.generalDocuments
             
-            // Urutkan dari yang paling baru, lalu ambil maksimal 3
+            // 2. Ambil dan gabungkan semua dokumen dari seluruh destinasi
+            let destDocs = trip.destinations.flatMap { $0.documents }
+            
+            // 3. Gabungkan kedua sumber dokumen tersebut menjadi satu array utuh
+            let allDocuments = generalDocs + destDocs
+            
+            // 4. Urutkan dari yang paling baru, lalu ambil maksimal 3
             let recentDocs = allDocuments
                 .sorted { $0.uploadDate > $1.uploadDate }
                 .prefix(3)
@@ -383,15 +359,11 @@ struct HomeView: View {
             } else {
                 LazyVStack(spacing: 12) {
                     ForEach(recentDocs) { document in
-                        // Pastikan StarredDocumentsCard diperbarui untuk menerima data dokumen
-                        
                         Button {
                             selectedDocument = document
                         } label: {
                             StarredDocumentsCard(document: document)
                         }
-
-                        
                     }
                 }
             }
@@ -402,6 +374,109 @@ struct HomeView: View {
 // =========================================================================
 // MARK: – Preview
 // =========================================================================
+
+struct AssignTripSheet: View {
+    @Environment(\.dismiss) var dismiss
+    @Environment(\.modelContext) private var modelContext
+    var capturedImage: UIImage
+    
+    @State private var vm = QuickStoreViewModel()
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color(.systemGroupedBackground)
+                    .ignoresSafeArea()
+                    
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 25) {
+                        FormCard(title: "Preview Dokumen") {
+                            VStack(alignment: .leading, spacing: 16) {
+                                Image(uiImage: capturedImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 250)
+                                    .cornerRadius(10)
+                                    .padding(.vertical, 8)
+                                    
+                                if !vm.pendingDocuments.isEmpty {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("Detail Dokumen")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.blue)
+                                        
+                                        ForEach($vm.pendingDocuments) { $doc in
+                                            QuickStoreView.SwipeablePendingDocRow(
+                                                document: $doc,
+                                                onDelete: {
+                                                    dismiss()
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        TripFieldStoreData(vm: vm)
+                        
+                        DestinationFieldStoreData(vm: vm)
+                        
+                        // Tombol Simpan
+                        Button {
+                            vm.saveTrip(modelContext: modelContext)
+                            dismiss()
+                        } label: {
+                            HStack {
+                                if vm.isSaving {
+                                    ProgressView().tint(.white)
+                                    Text("Menyimpan...")
+                                } else {
+                                    Image(systemName: "checkmark.circle.fill")
+                                    Text("Simpan Dokumen")
+                                }
+                            }
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(vm.canSave ? Color.green : Color(.systemGray4))
+                            .cornerRadius(14)
+                            .padding(.horizontal)
+                        }
+                        .disabled(!vm.canSave || vm.isSaving)
+                        .padding(.bottom, 20)
+                    }
+                    .padding(.vertical, 10)
+                }
+            }
+            .navigationTitle("Detail Dokumen")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Batal") {
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                if vm.pendingDocuments.isEmpty {
+                    if let jpegData = capturedImage.jpegData(compressionQuality: 0.8) {
+                        let newDoc = PendingDocument(
+                            isImage: true,
+                            imageData: jpegData,
+                            pdfData: nil,
+                            name: "Captured_Photo"
+                        )
+                        vm.pendingDocuments.append(newDoc)
+                    }
+                }
+            }
+        }
+        .presentationDetents([.large]) // Use large to give enough space for the form
+    }
+}
 
 #Preview("Ongoing Trip") {
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -442,3 +517,4 @@ struct HomeView: View {
     return HomeView()
         .modelContainer(container)
 }
+

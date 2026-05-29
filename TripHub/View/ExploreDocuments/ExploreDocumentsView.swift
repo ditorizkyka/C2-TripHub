@@ -101,17 +101,22 @@ struct ExploreDocumentsView: View {
                 // ── 2. Grid Dokumen ────────────────────────────
                 if filteredDocuments.isEmpty {
                     // Tampilkan pesan kosong
-                    VStack(spacing: 12) {
+                    VStack(spacing: 18) {
                         Image(systemName: "doc.text.magnifyingglass")
-                            .font(.system(size: 48))
-                            .foregroundStyle(.quaternary)
-                        Text("Tidak ada dokumen")
-                            .font(.headline)
-                            .foregroundStyle(.secondary)
-                        Text("Tap tombol + untuk upload dokumen baru.")
-                            .font(.subheadline)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
+                            .font(.system(size: 48, weight: .light))
+                            .foregroundStyle(.gray)
+                        
+                        VStack(spacing: 10) {
+                            Text("No documents found")
+                                .font(.helveticaCustom(size: 22, weight: .medium))
+                                .foregroundStyle(.gray)
+                            
+                            Text("You haven't uploaded any documents\nthat match this filter.")
+                                .font(.system(size: 15))
+                                .foregroundColor(.gray)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(4)
+                        }
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 80)

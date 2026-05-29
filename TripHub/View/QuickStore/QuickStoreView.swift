@@ -323,7 +323,7 @@ struct QuickStoreView: View {
 
     private var datePickerSection: some View {
         FormCard(title: "Tanggal Perjalanan") {
-            VStack(spacing: 15) {
+            VStack(alignment: .leading,spacing: 15,) {
                 DatePicker("Tanggal Mulai", selection: $vm.startDate, displayedComponents: .date)
                 Divider()
                 Toggle("Tambah Durasi", isOn: $vm.isRangeEnabled.animation())
@@ -521,21 +521,123 @@ struct QuickStoreView: View {
                 }
 
                 // Dokumen pending (belum disimpan)
-                if !vm.pendingDocuments.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\(vm.totalFileCount) file siap diupload")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
+                // Dokumen pending (belum disimpan)
+                                if !vm.pendingDocuments.isEmpty {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        Text("\(vm.totalFileCount) file siap diupload")
+                                            .font(.caption)
+                                            .fontWeight(.semibold)
+                                            .foregroundColor(.blue)
 
-                        // Gunakan ForEach by ID saja, TANPA index
-                        // Ini lebih aman dan tidak crash saat array berubah
-                        ForEach(vm.pendingDocuments) { doc in
-                            makePendingDocRow(doc: doc)
-                        }
+                                        // ⭐️ KUNCI: Tambahkan simbol '$' pada ForEach dan $doc
+                                        // Ini wajib agar SwiftUI bisa meneruskan Binding ke Picker di dalam row
+                                        ForEach($vm.pendingDocuments) { $doc in
+                                            SwipeablePendingDocRow(
+                                                document: $doc,
+                                                onDelete: {
+                                                    // Logika penghapusan saat tombol trash diklik
+                                                    withAnimation {
+                                                        // Sesuaikan baris di bawah ini dengan nama properti ID di model Anda
+                                                        vm.pendingDocuments.removeAll { $0.id == doc.id }
+                                                    }
+                                                }
+                                            )
+                                        }
+                                    }
+                                    .padding(.top, 8)
+                                }
+            }
+        }
+    }
+    
+    struct SwipeablePendingDocRow: View {
+        // Gunakan Binding agar perubahan kategori di Picker langsung tersimpan
+        @Binding var document: PendingDocument // Ganti 'PendingDocument' sesuai nama struct Model Anda
+        var onDelete: () -> Void
+        
+        // State untuk mengatur seberapa jauh baris digeser ke kiri
+        @State private var offset: CGFloat = 0
+
+        var body: some View {
+            ZStack(alignment: .trailing) {
+                // 1. LAPISAN BELAKANG: Tombol Delete Merah
+                Button(action: onDelete) {
+                    VStack {
+                        Image(systemName: "trash")
+                            .font(.title3)
+                        Text("Hapus")
+                            .font(.caption2)
                     }
-                    .padding(.top, 8)
+                    .foregroundColor(.white)
+                    .frame(width: 75) // Ruang yang terbuka saat dislide
+                    .frame(maxHeight: .infinity)
+                    .background(Color.red)
+                    .cornerRadius(8)
                 }
+                .padding(.trailing, 2)
+                
+                // 2. LAPISAN DEPAN: Konten Dokumen
+                HStack(spacing: 12) {
+                    // Ikon Thumbnail
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(document.isImage ? Color.blue.opacity(0.1) : Color.green.opacity(0.1))
+                            .frame(width: 40, height: 40)
+                        Image(systemName: document.isImage ? "photo" : "doc.fill")
+                            .foregroundColor(document.isImage ? .blue : .green)
+                    }
+                    
+                    // Teks Nama & Picker Kategori
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(document.name)
+                            .font(.helveticaCustom(size: 14, weight: .medium))
+                            .lineLimit(1) // Memotong teks jika terlalu panjang
+                        
+                        // PICKER YANG DIPERBAIKI MENJADI COMPACT DROPDOWN
+                        Picker("Kategori", selection: $document.category) {
+                            ForEach(DocumentCategory.allCases, id: \.self) { cat in
+                                Text(cat.title).tag(cat)
+                            }
+                        }
+                        .pickerStyle(.menu) // KUNCI: Jadikan model menu dropdown
+                        .labelsHidden()
+                        .font(.helveticaCustom(size: 8, weight: .medium))
+                        .tint(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(.primaryGray) // Membuatnya terlihat seperti 'Chip'
+                        .cornerRadius(6)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(10)
+                .background(Color(.systemBackground)) // Pastikan warnanya solid agar menutupi tombol hapus
+                .cornerRadius(8)
+                .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
+                
+                // 3. LOGIKA SLIDE (GESTURE)
+                .offset(x: offset)
+                .gesture(
+                    DragGesture()
+                        .onChanged { value in
+                            // Hanya izinkan slide ke kiri (nilai negatif)
+                            if value.translation.width < 0 {
+                                offset = value.translation.width
+                            }
+                        }
+                        .onEnded { value in
+                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                // Jika digeser lebih dari 50px, biarkan terbuka (offset -75)
+                                if value.translation.width < -50 {
+                                    offset = -75
+                                } else {
+                                    // Jika geseran nanggung, kembalikan ke posisi awal
+                                    offset = 0
+                                }
+                            }
+                        }
+                )
             }
         }
     }

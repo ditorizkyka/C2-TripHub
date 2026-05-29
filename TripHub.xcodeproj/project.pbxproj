@@ -6,11 +6,51 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		07B0FB932FC9E4B20059498E /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07B0FB922FC9E4B20059498E /* WidgetKit.framework */; };
+		07B0FB952FC9E4B20059498E /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 07B0FB942FC9E4B20059498E /* SwiftUI.framework */; };
+		07B0FBA42FC9E4B30059498E /* TripHubWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 07B0FB902FC9E4B20059498E /* TripHubWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		07B0FBA22FC9E4B30059498E /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 07FB21B32FA362FF00ECCCF1 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 07B0FB8F2FC9E4B20059498E;
+			remoteInfo = TripHubWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		07B0FBA92FC9E4B30059498E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				07B0FBA42FC9E4B30059498E /* TripHubWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		07B0FB902FC9E4B20059498E /* TripHubWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = TripHubWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		07B0FB922FC9E4B20059498E /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		07B0FB942FC9E4B20059498E /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		07FB21BB2FA362FF00ECCCF1 /* TripHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TripHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		07B0FBA82FC9E4B30059498E /* Exceptions for "TripHubWidget" folder in "TripHubWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 07B0FB8F2FC9E4B20059498E /* TripHubWidgetExtension */;
+		};
 		07FB224A2FA4F3CE00ECCCF1 /* Exceptions for "TripHub" folder in "TripHub" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -21,6 +61,14 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		07B0FB962FC9E4B20059498E /* TripHubWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				07B0FBA82FC9E4B30059498E /* Exceptions for "TripHubWidget" folder in "TripHubWidgetExtension" target */,
+			);
+			path = TripHubWidget;
+			sourceTree = "<group>";
+		};
 		07FB21BD2FA362FF00ECCCF1 /* TripHub */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -32,6 +80,15 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		07B0FB8D2FC9E4B20059498E /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				07B0FB952FC9E4B20059498E /* SwiftUI.framework in Frameworks */,
+				07B0FB932FC9E4B20059498E /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		07FB21B82FA362FF00ECCCF1 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -42,10 +99,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		07B0FB912FC9E4B20059498E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				07B0FB922FC9E4B20059498E /* WidgetKit.framework */,
+				07B0FB942FC9E4B20059498E /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		07FB21B22FA362FF00ECCCF1 = {
 			isa = PBXGroup;
 			children = (
 				07FB21BD2FA362FF00ECCCF1 /* TripHub */,
+				07B0FB962FC9E4B20059498E /* TripHubWidget */,
+				07B0FB912FC9E4B20059498E /* Frameworks */,
 				07FB21BC2FA362FF00ECCCF1 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -54,6 +122,7 @@
 			isa = PBXGroup;
 			children = (
 				07FB21BB2FA362FF00ECCCF1 /* TripHub.app */,
+				07B0FB902FC9E4B20059498E /* TripHubWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -61,6 +130,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		07B0FB8F2FC9E4B20059498E /* TripHubWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 07B0FBA52FC9E4B30059498E /* Build configuration list for PBXNativeTarget "TripHubWidgetExtension" */;
+			buildPhases = (
+				07B0FB8C2FC9E4B20059498E /* Sources */,
+				07B0FB8D2FC9E4B20059498E /* Frameworks */,
+				07B0FB8E2FC9E4B20059498E /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				07B0FB962FC9E4B20059498E /* TripHubWidget */,
+			);
+			name = TripHubWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = TripHubWidgetExtension;
+			productReference = 07B0FB902FC9E4B20059498E /* TripHubWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		07FB21BA2FA362FF00ECCCF1 /* TripHub */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 07FB21C62FA3630000ECCCF1 /* Build configuration list for PBXNativeTarget "TripHub" */;
@@ -68,10 +159,12 @@
 				07FB21B72FA362FF00ECCCF1 /* Sources */,
 				07FB21B82FA362FF00ECCCF1 /* Frameworks */,
 				07FB21B92FA362FF00ECCCF1 /* Resources */,
+				07B0FBA92FC9E4B30059498E /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				07B0FBA32FC9E4B30059498E /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				07FB21BD2FA362FF00ECCCF1 /* TripHub */,
@@ -90,9 +183,12 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 2640;
+				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2640;
 				TargetAttributes = {
+					07B0FB8F2FC9E4B20059498E = {
+						CreatedOnToolsVersion = 26.5;
+					};
 					07FB21BA2FA362FF00ECCCF1 = {
 						CreatedOnToolsVersion = 26.4.1;
 					};
@@ -113,11 +209,19 @@
 			projectRoot = "";
 			targets = (
 				07FB21BA2FA362FF00ECCCF1 /* TripHub */,
+				07B0FB8F2FC9E4B20059498E /* TripHubWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		07B0FB8E2FC9E4B20059498E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		07FB21B92FA362FF00ECCCF1 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -128,6 +232,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		07B0FB8C2FC9E4B20059498E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		07FB21B72FA362FF00ECCCF1 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -137,7 +248,77 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		07B0FBA32FC9E4B30059498E /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 07B0FB8F2FC9E4B20059498E /* TripHubWidgetExtension */;
+			targetProxy = 07B0FBA22FC9E4B30059498E /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		07B0FBA62FC9E4B30059498E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SJ25JWH9X6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TripHubWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TripHubWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ditorizkyka.TripHub.TripHubWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		07B0FBA72FC9E4B30059498E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SJ25JWH9X6;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = TripHubWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = TripHubWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = ditorizkyka.TripHub.TripHubWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
 		07FB21C42FA3630000ECCCF1 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -271,6 +452,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TripHub/Info.plist;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "\"We need access to your camera so you can take and upload a profile picture.\"";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -305,6 +487,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TripHub/Info.plist;
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "\"We need access to your camera so you can take and upload a profile picture.\"";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -330,6 +513,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		07B0FBA52FC9E4B30059498E /* Build configuration list for PBXNativeTarget "TripHubWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				07B0FBA62FC9E4B30059498E /* Debug */,
+				07B0FBA72FC9E4B30059498E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		07FB21B62FA362FF00ECCCF1 /* Build configuration list for PBXProject "TripHub" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
