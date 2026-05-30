@@ -111,7 +111,7 @@ struct HomeView: View {
             }
             .sheet(isPresented: $isShowingTripSheet) {
                 if let image = capturedImage {
-                    AssignTripSheet(capturedImage: image)
+                    AssignDocumentSheet(capturedImage: image)
                 }
             }
             .onAppear {
@@ -136,7 +136,7 @@ struct HomeView: View {
                 hasPendingSharedFile = false
             }) {
                 if let data = vm.sharedFileData {
-                    AssignTripSheet(
+                    AssignDocumentSheet(
                         fileData: data,
                         isImage: vm.sharedFileIsImage,
                         originalName: vm.sharedFileOriginalName

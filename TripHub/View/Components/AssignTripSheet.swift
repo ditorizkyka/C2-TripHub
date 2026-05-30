@@ -8,7 +8,7 @@ import SwiftData
 
 // MARK: - AssignTripSheet
 
-struct AssignTripSheet: View {
+struct AssignDocumentSheet: View {
     // MARK: - Environment
     
     @Environment(\.dismiss) var dismiss
@@ -90,7 +90,7 @@ struct AssignTripSheet: View {
                                             .foregroundColor(.accentColor)
 
                                         ForEach($vm.pendingDocuments) { $doc in
-                                            QuickStoreView.SwipeablePendingDocRow(
+                                            SwipeablePendingDocRow(
                                                 document: $doc,
                                                 onDelete: { dismiss() }
                                             )
@@ -163,3 +163,4 @@ struct AssignTripSheet: View {
         vm.pendingDocuments.append(newDoc)
     }
 }
+
