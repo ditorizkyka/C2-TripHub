@@ -7,63 +7,52 @@
 
 import SwiftUI
 
-//struct MainTabView: View {
-//    @State private var currentTab: TabItemCustom = .home
-//    
-//    init() {
-//        // Menyembunyikan TabBar bawaan
-//        UITabBar.appearance().isHidden = true
-//    }
-//    
-//    var body: some View {
-//        // Tambahkan alignment .bottom di sini
-//        ZStack(alignment: .bottom) {
-//            
-//            Group {
-//                switch currentTab {
-//                case .home:
-//                    HomeView()
-//                case .explore:
-//                    ExploreTripView()
-//                case .documents:
-//                    ExploreDocumentsView()
-//                case .add:
-//                    AddDocumentsView()
-//                }
-//            }
-//            .frame(maxWidth: .infinity, maxHeight: .infinity)
-//            // Tambahkan padding bawah pada View konten agar tidak tertutup TabBar
-//            .padding(.bottom, 85)
-//            
-//            // Tab bar akan otomatis menempel di bawah karena alignment ZStack
-//            CustomTabBar(selectedTab: $currentTab)
-//                .padding(.bottom, 10) // Jarak aman dari edge bawah layar
-//        }
-//        .ignoresSafeArea(.keyboard, edges: .bottom) // Opsional: agar tidak naik saat keyboard muncul
-//    }
-//}
+struct MainTabView: View {
+    /// Deep link destination from widget tap (passed from TripHubApp)
+    @Binding var deepLinkDestination: DeepLinkDestination?
 
-struct MainTabView : View {
-    var body : some View {
-        TabView {
-            Tab("Home", systemImage: "house") {
-                    HomeView()
-                }
-            
-            Tab("Trip", systemImage: "airplane.up.right") {
-                    ExploreTripView()
-                }
-            
-            Tab("Documents", systemImage: "document.on.document") {
-                    ExploreDocumentsView()
-                }
-//                .badge(2)
+    /// Set to true when the Share Extension has placed a file in the container
+    @Binding var hasPendingSharedFile: Bool
+
+    /// Tracks the currently selected tab
+    @State private var selectedTab: String = "Home"
+
+    var body: some View {
+        TabView(selection: $selectedTab) {
+            Tab("Home", systemImage: "house", value: "Home") {
+                HomeView(
+                    deepLinkDestination: $deepLinkDestination,
+                    hasPendingSharedFile: $hasPendingSharedFile
+                )
+            }
+
+            Tab("Trip", systemImage: "airplane.up.right", value: "Trip") {
+                ExploreTripView()
+            }
+
+            Tab("Documents", systemImage: "document.on.document", value: "Documents") {
+                ExploreDocumentsView()
+            }
         }
-        
         .tint(Color(hex: "#4AB855"))
+        .onChange(of: deepLinkDestination) { _, newValue in
+            // When a widget deep link arrives, switch to the Home tab
+            if newValue != nil {
+                selectedTab = "Home"
+            }
+        }
+        .onChange(of: hasPendingSharedFile) { _, newValue in
+            // When a shared file arrives, switch to Home so AssignTripSheet shows
+            if newValue {
+                selectedTab = "Home"
+            }
+        }
     }
 }
 
 #Preview {
-    MainTabView()
+    MainTabView(
+        deepLinkDestination: .constant(nil),
+        hasPendingSharedFile: .constant(false)
+    )
 }

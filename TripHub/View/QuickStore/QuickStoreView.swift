@@ -3,47 +3,22 @@ import SwiftData
 import PhotosUI
 import UniformTypeIdentifiers
 
-// ============================================================
 // MARK: - QuickStoreView
-// ============================================================
-// Halaman form untuk upload dokumen ke sebuah trip.
-//
-// Alur penggunaan:
-// 1. Pilih trip yang sudah ada ATAU ketik nama trip baru
-// 2. Atur tanggal perjalanan
-// 3. (Opsional) Tambah destinasi
-// 4. Upload gambar atau PDF
-// 5. Tekan "Simpan"
 
 struct QuickStoreView: View {
-
-    // Ambil semua trip dari database SwiftData
+    // MARK: - Environment
+    
     @Query var allTrips: [TripModel]
-
-    // ViewModel yang menyimpan semua state form ini
-    @State private var vm = QuickStoreViewModel()
-
-    // Toggle untuk menampilkan PDF picker
-    @State private var showPDFPicker = false
-
-    // PhotosPicker binding khusus untuk foto sampul trip
-    @State private var coverImagePickerItem: PhotosPickerItem? = nil
-
-    // Untuk menutup halaman ini (sheet)
     @Environment(\.dismiss) private var dismiss
-
-    // Untuk tahu apakah mode gelap atau terang
     @Environment(\.colorScheme) private var colorScheme
-
-    // ModelContext dari SwiftData (untuk menyimpan data ke database)
     @Environment(\.modelContext) private var modelContext
 
+    // MARK: - Properties
+    
+    @State private var vm = QuickStoreViewModel()
+    @State private var showPDFPicker = false
+    @State private var coverImagePickerItem: PhotosPickerItem? = nil
 
-    // ============================================================
-    // MARK: - Computed Properties
-    // ============================================================
-
-    // Destinasi yang sudah tersimpan di trip yang dipilih user
     private var existingDestinations: [DestinationModel] {
         if let trip = vm.selectedTrip {
             return trip.destinations
@@ -51,31 +26,25 @@ struct QuickStoreView: View {
         return []
     }
 
-    // Dokumen yang sudah tersimpan di lokasi yang dipilih
     private var existingDocuments: [DocumentModel] {
-        // Jika ada destinasi yang dipilih, tampilkan dokumen destinasi itu
         if let destId = vm.selectedDestinationId {
-            // Cek di destinasi existing
             for dest in existingDestinations {
                 if dest.id == destId {
                     return dest.documents
                 }
             }
-            // Cek di destinasi baru
             for dest in vm.newDestinations {
                 if dest.id == destId {
                     return dest.documents
                 }
             }
         }
-        // Jika tidak ada destinasi dipilih, tampilkan dokumen umum trip
         if let trip = vm.selectedTrip {
             return trip.generalDocuments
         }
         return []
     }
 
-    // Trip yang cocok dengan teks pencarian
     private var filteredTrips: [TripModel] {
         if vm.searchText.isEmpty { return [] }
         let searchLower = vm.searchText.lowercased()
@@ -84,11 +53,8 @@ struct QuickStoreView: View {
         }
     }
 
-
-    // ============================================================
     // MARK: - Body
-    // ============================================================
-
+    
     var body: some View {
         NavigationStack {
             ZStack {
@@ -97,24 +63,14 @@ struct QuickStoreView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 25) {
-
                         Text("Upload your trip documents and destinations based on your preferences.")
                             .padding(.horizontal)
                             .foregroundStyle(.secondary)
 
-                        // SECTION 1: Pilih / Buat Trip
                         tripInfoSection
-
-                        // SECTION 2: Tanggal Perjalanan
                         datePickerSection
-
-                        // SECTION 3: Destinasi (Opsional)
                         destinationSection
-
-                        // SECTION 4: Upload Dokumen
                         documentUploadSection
-
-                        // Tombol Simpan
                         saveButton
                     }
                     .padding(.vertical, 10)
@@ -122,8 +78,6 @@ struct QuickStoreView: View {
             }
             .navigationTitle("Add Documents")
             .navigationBarTitleDisplayMode(.inline)
-
-            // PDF File Picker
             .fileImporter(
                 isPresented: $showPDFPicker,
                 allowedContentTypes: [UTType.pdf],
@@ -134,10 +88,7 @@ struct QuickStoreView: View {
         }
     }
 
-
-    // ============================================================
-    // MARK: - SECTION 1: Trip Information
-    // ============================================================
+    // MARK: - Sub-views
 
     private var tripInfoSection: some View {
         FormCard(title: "Trip Information") {
@@ -146,7 +97,6 @@ struct QuickStoreView: View {
                     .font(.body)
                     .foregroundColor(.secondary)
 
-                // Search field
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.secondary)
@@ -160,41 +110,34 @@ struct QuickStoreView: View {
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(10)
 
-                // Konfirmasi trip yang dipilih
                 if let trip = vm.selectedTrip {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                        Text("Trip dipilih: \(trip.name)")
+                        Text("Selected Trip: \(trip.name)")
                             .font(.caption)
                     }
                 }
 
-                // Saran dari database
                 if vm.selectedTrip == nil && !filteredTrips.isEmpty {
                     suggestionList
                 }
 
-                // Info akan buat trip baru
                 if vm.selectedTrip == nil
                     && !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty
                     && filteredTrips.isEmpty {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .foregroundColor(.green)
-                        Text("Akan membuat trip baru: \"\(vm.searchText)\"")
+                        Text("Creating new trip: \"\(vm.searchText)\"")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
                 }
 
-                // ── Optional fields (only shown when creating a new trip) ────
-                // Cover image and description are only relevant for new trips.
-                // When editing an existing trip, use EditTripView instead.
                 if vm.selectedTrip == nil && !vm.searchText.trimmingCharacters(in: .whitespaces).isEmpty {
                     Divider()
 
-                    // Cover Image picker
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Cover Image (Optional)")
                             .font(.subheadline)
@@ -202,7 +145,6 @@ struct QuickStoreView: View {
                             .foregroundColor(.secondary)
 
                         PhotosPicker(selection: $coverImagePickerItem, matching: .images) {
-                            // Show a preview if image already selected, else show placeholder
                             if let data = vm.coverImageData, let uiImage = UIImage(data: data) {
                                 Image(uiImage: uiImage)
                                     .resizable()
@@ -219,7 +161,7 @@ struct QuickStoreView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "photo.badge.plus")
                                         .font(.title2)
-                                    Text("Pilih foto sampul")
+                                    Text("Select cover photo")
                                         .font(.subheadline)
                                 }
                                 .frame(maxWidth: .infinity)
@@ -233,7 +175,6 @@ struct QuickStoreView: View {
                                 )
                             }
                         }
-                        // Load the raw Data when user picks an image
                         .onChange(of: coverImagePickerItem) { _, newItem in
                             guard let newItem else {
                                 vm.coverImageData = nil
@@ -247,7 +188,6 @@ struct QuickStoreView: View {
                         }
                     }
 
-                    // Description TextEditor
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Description (Optional)")
                             .font(.subheadline)
@@ -255,9 +195,8 @@ struct QuickStoreView: View {
                             .foregroundColor(.secondary)
 
                         ZStack(alignment: .topLeading) {
-                            // Placeholder text
                             if vm.tripDescription.isEmpty {
-                                Text("Ceritakan sedikit tentang trip ini...")
+                                Text("Tell us a bit about this trip...")
                                     .foregroundColor(Color(.placeholderText))
                                     .font(.body)
                                     .padding(.horizontal, 5)
@@ -276,11 +215,10 @@ struct QuickStoreView: View {
         }
     }
 
-    // Daftar saran trip
     private var suggestionList: some View {
         VStack(alignment: .leading, spacing: 4) {
             Divider()
-            Text("Pilih dari trip yang ada:")
+            Text("Select from existing trips:")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
@@ -305,7 +243,7 @@ struct QuickStoreView: View {
                         Text(trip.name)
                             .foregroundColor(.primary)
                         Spacer()
-                        Text("Pilih")
+                        Text("Select")
                             .font(.caption)
                             .foregroundColor(.blue)
                     }
@@ -316,22 +254,17 @@ struct QuickStoreView: View {
         }
     }
 
-
-    // ============================================================
-    // MARK: - SECTION 2: Date Picker
-    // ============================================================
-
     private var datePickerSection: some View {
-        FormCard(title: "Tanggal Perjalanan") {
-            VStack(alignment: .leading,spacing: 15,) {
-                DatePicker("Tanggal Mulai", selection: $vm.startDate, displayedComponents: .date)
+        FormCard(title: "Trip Date") {
+            VStack(alignment: .leading,spacing: 15) {
+                DatePicker("Start Date", selection: $vm.startDate, displayedComponents: .date)
                 Divider()
-                Toggle("Tambah Durasi", isOn: $vm.isRangeEnabled.animation())
+                Toggle("Add Duration", isOn: $vm.isRangeEnabled.animation())
                 if vm.isRangeEnabled {
                     Divider()
-                    Stepper("\(vm.durationDays) Hari", value: $vm.durationDays, in: 1...30)
+                    Stepper("\(vm.durationDays) Days", value: $vm.durationDays, in: 1...30)
                         .fontWeight(.semibold)
-                    Text("Kembali: \(vm.endDate.formatted(date: .abbreviated, time: .omitted))")
+                    Text("Back on: \(vm.endDate.formatted(date: .abbreviated, time: .omitted))")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -339,42 +272,33 @@ struct QuickStoreView: View {
         }
     }
 
-
-    // ============================================================
-    // MARK: - SECTION 3: Destination
-    // ============================================================
-
     private var destinationSection: some View {
-        FormCard(title: "Destinasi (Opsional)") {
+        FormCard(title: "Destinations (Optional)") {
             VStack(spacing: 15) {
-
-                Text("Tambah destinasi jika ingin menyimpan dokumen per kota/tempat")
+                Text("Add destinations to organize documents by city/place")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                // Input nama destinasi
                 HStack(spacing: 10) {
                     Image(systemName: "mappin.circle.fill")
                         .foregroundStyle(.green)
-                    TextField("Nama Kota atau Tempat", text: $vm.destinationName)
+                    TextField("City or Place Name", text: $vm.destinationName)
                 }
                 .padding(10)
                 .background(Color(.secondarySystemBackground))
                 .cornerRadius(8)
 
-                // Tanggal destinasi
-                DatePicker("Waktu Tiba", selection: $vm.destinationStartDate)
+                DatePicker("Arrival Time", selection: $vm.destinationStartDate)
                     .font(.caption)
                     .foregroundColor(.secondary)
-                DatePicker("Waktu Pergi", selection: $vm.destinationEndDate)
+                DatePicker("Departure Time", selection: $vm.destinationEndDate)
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                // Tombol tambah
                 Button {
                     addDestination()
                 } label: {
-                    Label("Tambah Destinasi", systemImage: "plus")
+                    Label("Add Destination", systemImage: "plus")
                         .frame(maxWidth: .infinity)
                         .padding(10)
                         .background(vm.destinationName.isEmpty ? Color(.systemGray4) : Color.green)
@@ -383,10 +307,9 @@ struct QuickStoreView: View {
                 }
                 .disabled(vm.destinationName.isEmpty)
 
-                // Destinasi baru (belum disimpan)
                 if !vm.newDestinations.isEmpty {
                     Divider()
-                    Text("Destinasi Baru")
+                    Text("New Destinations")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -396,10 +319,9 @@ struct QuickStoreView: View {
                     }
                 }
 
-                // Destinasi yang sudah ada di trip yang dipilih
                 if !existingDestinations.isEmpty {
                     Divider()
-                    Text("Sudah tersimpan di \"\(vm.selectedTrip?.name ?? "")\"")
+                    Text("Saved in \"\(vm.selectedTrip?.name ?? "")\"")
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -412,7 +334,6 @@ struct QuickStoreView: View {
         }
     }
 
-    // Satu baris destinasi (bisa dipilih)
     private func makeDestinationRow(dest: DestinationModel) -> some View {
         let isSelected = vm.selectedDestinationId == dest.id
 
@@ -442,25 +363,18 @@ struct QuickStoreView: View {
         .buttonStyle(.plain)
     }
 
-
-    // ============================================================
-    // MARK: - SECTION 4: Document Upload
-    // ============================================================
-
     private var documentUploadSection: some View {
-        FormCard(title: "Dokumen") {
+        FormCard(title: "Documents") {
             VStack(alignment: .leading, spacing: 16) {
-
-                Text("Upload tiket, KTP, atau dokumen perjalanan lainnya")
+                Text("Upload tickets, identity, or other travel documents")
                     .font(.body)
                     .foregroundColor(.secondary)
 
-                // Tombol upload (gambar + PDF)
                 HStack(spacing: 12) {
                     PhotosPicker(selection: $vm.selectedItems, matching: .images) {
                         VStack(spacing: 6) {
                             Image(systemName: "photo.badge.plus").font(.title2)
-                            Text("Gambar").font(.caption)
+                            Text("Image").font(.caption)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 20)
@@ -490,10 +404,9 @@ struct QuickStoreView: View {
                     }
                 }
 
-                // Preview dokumen yang sudah tersimpan sebelumnya
                 if !existingDocuments.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Sudah Tersimpan")
+                        Text("Saved Documents")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundColor(.secondary)
@@ -520,210 +433,29 @@ struct QuickStoreView: View {
                     .padding(.top, 8)
                 }
 
-                // Dokumen pending (belum disimpan)
-                // Dokumen pending (belum disimpan)
-                                if !vm.pendingDocuments.isEmpty {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("\(vm.totalFileCount) file siap diupload")
-                                            .font(.caption)
-                                            .fontWeight(.semibold)
-                                            .foregroundColor(.blue)
+                if !vm.pendingDocuments.isEmpty {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(vm.totalFileCount) files ready to upload")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
 
-                                        // ⭐️ KUNCI: Tambahkan simbol '$' pada ForEach dan $doc
-                                        // Ini wajib agar SwiftUI bisa meneruskan Binding ke Picker di dalam row
-                                        ForEach($vm.pendingDocuments) { $doc in
-                                            SwipeablePendingDocRow(
-                                                document: $doc,
-                                                onDelete: {
-                                                    // Logika penghapusan saat tombol trash diklik
-                                                    withAnimation {
-                                                        // Sesuaikan baris di bawah ini dengan nama properti ID di model Anda
-                                                        vm.pendingDocuments.removeAll { $0.id == doc.id }
-                                                    }
-                                                }
-                                            )
-                                        }
+                        ForEach($vm.pendingDocuments) { $doc in
+                            SwipeablePendingDocRow(
+                                document: $doc,
+                                onDelete: {
+                                    withAnimation {
+                                        vm.pendingDocuments.removeAll { $0.id == doc.id }
                                     }
-                                    .padding(.top, 8)
                                 }
+                            )
+                        }
+                    }
+                    .padding(.top, 8)
+                }
             }
         }
     }
-    
-    struct SwipeablePendingDocRow: View {
-        // Gunakan Binding agar perubahan kategori di Picker langsung tersimpan
-        @Binding var document: PendingDocument // Ganti 'PendingDocument' sesuai nama struct Model Anda
-        var onDelete: () -> Void
-        
-        // State untuk mengatur seberapa jauh baris digeser ke kiri
-        @State private var offset: CGFloat = 0
-
-        var body: some View {
-            ZStack(alignment: .trailing) {
-                // 1. LAPISAN BELAKANG: Tombol Delete Merah
-                Button(action: onDelete) {
-                    VStack {
-                        Image(systemName: "trash")
-                            .font(.title3)
-                        Text("Hapus")
-                            .font(.caption2)
-                    }
-                    .foregroundColor(.white)
-                    .frame(width: 75) // Ruang yang terbuka saat dislide
-                    .frame(maxHeight: .infinity)
-                    .background(Color.red)
-                    .cornerRadius(8)
-                }
-                .padding(.trailing, 2)
-                
-                // 2. LAPISAN DEPAN: Konten Dokumen
-                HStack(spacing: 12) {
-                    // Ikon Thumbnail
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(document.isImage ? Color.blue.opacity(0.1) : Color.green.opacity(0.1))
-                            .frame(width: 40, height: 40)
-                        Image(systemName: document.isImage ? "photo" : "doc.fill")
-                            .foregroundColor(document.isImage ? .blue : .green)
-                    }
-                    
-                    // Teks Nama & Picker Kategori
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(document.name)
-                            .font(.helveticaCustom(size: 14, weight: .medium))
-                            .lineLimit(1) // Memotong teks jika terlalu panjang
-                        
-                        // PICKER YANG DIPERBAIKI MENJADI COMPACT DROPDOWN
-                        Picker("Kategori", selection: $document.category) {
-                            ForEach(DocumentCategory.allCases, id: \.self) { cat in
-                                Text(cat.title).tag(cat)
-                            }
-                        }
-                        .pickerStyle(.menu) // KUNCI: Jadikan model menu dropdown
-                        .labelsHidden()
-                        .font(.helveticaCustom(size: 8, weight: .medium))
-                        .tint(.secondary)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(.primaryGray) // Membuatnya terlihat seperti 'Chip'
-                        .cornerRadius(6)
-                    }
-                    
-                    Spacer()
-                }
-                .padding(10)
-                .background(Color(.systemBackground)) // Pastikan warnanya solid agar menutupi tombol hapus
-                .cornerRadius(8)
-                .shadow(color: .black.opacity(0.04), radius: 3, x: 0, y: 1)
-                
-                // 3. LOGIKA SLIDE (GESTURE)
-                .offset(x: offset)
-                .gesture(
-                    DragGesture()
-                        .onChanged { value in
-                            // Hanya izinkan slide ke kiri (nilai negatif)
-                            if value.translation.width < 0 {
-                                offset = value.translation.width
-                            }
-                        }
-                        .onEnded { value in
-                            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                // Jika digeser lebih dari 50px, biarkan terbuka (offset -75)
-                                if value.translation.width < -50 {
-                                    offset = -75
-                                } else {
-                                    // Jika geseran nanggung, kembalikan ke posisi awal
-                                    offset = 0
-                                }
-                            }
-                        }
-                )
-            }
-        }
-    }
-
-    // Satu baris dokumen pending
-    private func makePendingDocRow(doc: PendingDocument) -> some View {
-        // Cari index secara aman setiap kali view dirender
-        let safeIndex = vm.pendingDocuments.firstIndex(where: { $0.id == doc.id })
-
-        return HStack(spacing: 10) {
-
-            // Thumbnail
-            if doc.isImage, let data = doc.imageData, let uiImage = UIImage(data: data) {
-                Image(uiImage: uiImage)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 40, height: 40)
-                    .cornerRadius(6)
-                    .clipped()
-            } else {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color.orange.opacity(0.2))
-                        .frame(width: 40, height: 40)
-                    Image(systemName: "doc.fill")
-                        .foregroundColor(.orange)
-                }
-            }
-
-            // Nama file (bisa diubah)
-            if let idx = safeIndex {
-                TextField("Nama File", text: Binding(
-                    get: {
-                        if vm.pendingDocuments.indices.contains(idx) {
-                            return vm.pendingDocuments[idx].name
-                        }
-                        return ""
-                    },
-                    set: { newValue in
-                        if vm.pendingDocuments.indices.contains(idx) {
-                            vm.pendingDocuments[idx].name = newValue
-                        }
-                    }
-                ))
-                .font(.caption)
-                .textFieldStyle(.roundedBorder)
-                .autocorrectionDisabled(true)
-
-                // Picker kategori
-                Picker("", selection: Binding(
-                    get: {
-                        if vm.pendingDocuments.indices.contains(idx) {
-                            return vm.pendingDocuments[idx].category
-                        }
-                        return .others
-                    },
-                    set: { newValue in
-                        if vm.pendingDocuments.indices.contains(idx) {
-                            vm.pendingDocuments[idx].category = newValue
-                        }
-                    }
-                )) {
-                    ForEach(DocumentCategory.allCases, id: \.self) { cat in
-                        Label(cat.title, systemImage: cat.icon).tag(cat)
-                    }
-                }
-                .pickerStyle(.menu)
-                .labelsHidden()
-            }
-
-            // Tombol hapus
-            Button {
-                vm.pendingDocuments.removeAll { $0.id == doc.id }
-            } label: {
-                Image(systemName: "trash.circle.fill")
-                    .font(.title2)
-                    .foregroundColor(.red.opacity(0.8))
-            }
-        }
-        .padding(.vertical, 4)
-    }
-
-
-    // ============================================================
-    // MARK: - Save Button
-    // ============================================================
 
     private var saveButton: some View {
         Button {
@@ -733,10 +465,10 @@ struct QuickStoreView: View {
             HStack {
                 if vm.isSaving {
                     ProgressView().tint(.white)
-                    Text("Menyimpan...")
+                    Text("Saving...")
                 } else {
                     Image(systemName: "checkmark.circle.fill")
-                    Text("Simpan Semua")
+                    Text("Save All")
                 }
             }
             .font(.headline)
@@ -750,10 +482,7 @@ struct QuickStoreView: View {
         .disabled(!vm.canSave || vm.isSaving)
     }
 
-
-    // ============================================================
-    // MARK: - Helper Functions
-    // ============================================================
+    // MARK: - Helper Methods
 
     private func addDestination() {
         let name = vm.destinationName.trimmingCharacters(in: .whitespaces)
@@ -774,19 +503,12 @@ struct QuickStoreView: View {
         switch result {
         case .success(let urls):
             for url in urls {
-                // PENTING: Baca data file SEKARANG, jangan simpan URL-nya.
-                // Karena setelah keluar dari sini, akses ke file bisa hilang.
                 let didStart = url.startAccessingSecurityScopedResource()
-
-                // Baca data langsung ke memori
                 let pdfData = try? Data(contentsOf: url)
-
-                // Lepas akses security scope setelah selesai baca
                 if didStart {
                     url.stopAccessingSecurityScopedResource()
                 }
 
-                // Hanya tambahkan jika berhasil baca
                 if let data = pdfData {
                     let fileName = url.deletingPathExtension().lastPathComponent
                     let newDoc = PendingDocument(
@@ -796,55 +518,15 @@ struct QuickStoreView: View {
                         name: fileName
                     )
                     vm.pendingDocuments.append(newDoc)
-                } else {
-                    print("⚠️ Gagal membaca PDF: \(url.lastPathComponent)")
                 }
             }
-
         case .failure(let error):
-            print("❌ Gagal membuka PDF picker: \(error.localizedDescription)")
+            print("Failed to import PDF: \(error.localizedDescription)")
         }
     }
 }
 
-
-// ============================================================
-// MARK: - FormCard (Komponen Reusable)
-// ============================================================
-// Kartu dengan judul dan konten. Dipakai berulang kali agar tampilan rapi.
-
-struct FormCard<Content: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
-    let title: String
-    let content: Content
-
-    init(title: String, @ViewBuilder content: () -> Content) {
-        self.title = title
-        self.content = content()
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(title)
-                .font(.title2)
-                .fontWeight(.semibold)
-                .padding(.leading, 5)
-
-            VStack {
-                content
-            }
-            .padding()
-            .background(Color(.systemBackground))
-            .cornerRadius(15)
-            .shadow(
-                color: colorScheme == .dark ? .clear : .black.opacity(0.05),
-                radius: 8, x: 0, y: 4
-            )
-        }
-        .padding(.horizontal)
-    }
-}
-
+// MARK: - Previews
 
 #Preview {
     QuickStoreView()

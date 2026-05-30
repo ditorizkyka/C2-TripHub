@@ -85,10 +85,13 @@ final class TripModel {
         return nextDay.addingTimeInterval(-1)
     }
 
+    // --- Helper: Ambil semua dokumen di seluruh trip (umum + destinasi) ---
+    var allDocuments: [DocumentModel] {
+        return generalDocuments + destinations.flatMap { $0.documents }
+    }
+
     // --- Helper: Hitung total dokumen di seluruh trip ---
     var totalDocumentCount: Int {
-        let generalCount = generalDocuments.count
-        let destinationCount = destinations.reduce(0) { $0 + $1.documents.count }
-        return generalCount + destinationCount
+        return allDocuments.count
     }
 }

@@ -116,15 +116,15 @@ enum DocumentCategory: String, CaseIterable, Codable {
         }
     }
     
-    @ViewBuilder
-        var page: some View {
-            switch self {
-            case .ticket:
-                TicketDocuments()
-            case .identity:
-                IdentityDocuments()
-            case .others:
-                OtherDocuments()
-            }
-        }
+//    @ViewBuilder
+//        var page: some View {
+//            switch self {
+//            case .ticket:
+//                TicketDocuments()
+//            case .identity:
+//                IdentityDocuments()
+//            case .others:
+//                OtherDocuments()
+//            }
+//        }
 }

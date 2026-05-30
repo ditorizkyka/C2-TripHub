@@ -26,11 +26,7 @@ extension Array where Element == TripModel {
     }
     
     var allDocuments: [DocumentModel] {
-        self.flatMap { trip in
-            let generalDocs = trip.generalDocuments
-            let destDocs = trip.destinations.flatMap { $0.documents }
-            return generalDocs + destDocs
-        }
+        self.flatMap { $0.allDocuments }
     }
     
     func documents(for categoryRawValue: String) -> [DocumentModel] {
